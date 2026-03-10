@@ -156,6 +156,15 @@ pytest tests/ -v
 - Wide/complex diagrams can be slow under `balanced` profile
 - OpenCV CUDA requires a custom-built OpenCV (pip version is CPU-only)
 
+## Acknowledgments
+
+This project was inspired by the following works on diagram-to-editable-format conversion:
+
+- [AutoFigure-Edit](https://github.com/TuchuanLin/AutoFigure-Edit) — LLM + SAM-based pipeline for generating editable SVG figures from academic text (ICLR 2026).
+- [Edit-Banana](https://github.com/BIT-DataLab/Edit-Banana) — SAM + multimodal LLM framework for converting static diagrams into DrawIO/PPTX.
+
+Plot2SVG takes a different approach: a lightweight, LLM-free pipeline using classical CV (OpenCV + ONNX Runtime OCR) to produce component-editable SVG from raster images. No code was derived from either project.
+
 ## License
 
 [MIT](LICENSE)
