@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Plot2SVG
 
 Convert raster plots and diagrams (PNG/JPG/JPEG) into component-editable SVG files.
