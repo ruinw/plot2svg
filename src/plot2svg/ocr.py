@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Union
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import cv2
 import numpy as np
 import onnxruntime as ort
@@ -14,7 +16,11 @@ from .config import PipelineConfig
 from .scene_graph import SceneGraph, SceneNode
 
 
-_OCR_ENGINE: RapidOCR | None = None
+_OCR_ENGINE_FULL: RapidOCR | None = None
+_OCR_ENGINE_REC: RapidOCR | None = None
+
+_EARLY_EXIT_CONFIDENCE = 0.85
+_MIN_PIXEL_STD = 10.0
 
 
 ImageInput = Union[Path, np.ndarray]
@@ -26,31 +32,48 @@ def populate_text_nodes(image_path: ImageInput, scene_graph: SceneGraph, cfg: Pi
     image = _load_color_image(image_path)
 
     merged_graph = merge_text_nodes(scene_graph)
+    text_nodes = [n for n in merged_graph.nodes if n.type == "text" and not _should_skip_text_node(n, cfg)]
+
+    # Optimization 5: thread-parallel OCR (ONNX releases GIL)
+    cap = cfg.ocr_max_workers if cfg and cfg.ocr_max_workers > 0 else 4
+    max_workers = min(cap, len(text_nodes)) if text_nodes else 0
+    results: dict[str, str | None] = {}
+
+    if max_workers > 1:
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(_read_text_from_bbox, image, node.bbox, cfg): node
+                for node in text_nodes
+            }
+            for future in as_completed(futures):
+                node = futures[future]
+                results[node.id] = future.result()
+    else:
+        for node in text_nodes:
+            results[node.id] = _read_text_from_bbox(image, node.bbox, cfg)
+
     nodes: list[SceneNode] = []
     for node in merged_graph.nodes:
-        if node.type != "text":
-            nodes.append(node)
-            continue
-        if _should_skip_text_node(node, cfg):
-            nodes.append(node)
-            continue
-        text = _read_text_from_bbox(image, node.bbox, cfg)
-        nodes.append(
-            SceneNode(
-                id=node.id,
-                type=node.type,
-                bbox=node.bbox,
-                z_index=node.z_index,
-                vector_mode="text_box" if text else node.vector_mode,
-                confidence=node.confidence,
-                fill=node.fill,
-                stroke=node.stroke,
-                stroke_width=node.stroke_width,
-                source_mask=node.source_mask,
-                text_content=text,
-                children=node.children,
+        if node.id in results:
+            text = results[node.id]
+            nodes.append(
+                SceneNode(
+                    id=node.id,
+                    type=node.type,
+                    bbox=node.bbox,
+                    z_index=node.z_index,
+                    vector_mode="text_box" if text else node.vector_mode,
+                    confidence=node.confidence,
+                    fill=node.fill,
+                    stroke=node.stroke,
+                    stroke_width=node.stroke_width,
+                    source_mask=node.source_mask,
+                    text_content=text,
+                    children=node.children,
+                )
             )
-        )
+        else:
+            nodes.append(node)
     return SceneGraph(width=merged_graph.width, height=merged_graph.height, nodes=nodes)
 
 
@@ -108,12 +131,22 @@ def _read_text_from_bbox(image, bbox: list[int], cfg: PipelineConfig | None = No
     crop = image[y1:y2, x1:x2]
     if crop.size == 0:
         return None
+    # Optimization 3: skip uniform regions (no text)
+    gray_check = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim == 3 else crop
+    if np.std(gray_check) < _MIN_PIXEL_STD:
+        return None
     candidates: list[tuple[str, float]] = []
     for variant in _prepare_ocr_variants(crop, cfg):
-        result, _ = _get_ocr_engine()(variant)
-        candidates.extend(_extract_ocr_candidates(result))
+        result, _ = _get_ocr_engine_rec()(variant)
+        new_candidates = _extract_ocr_candidates(result)
+        candidates.extend(new_candidates)
+        # Optimization 2: early exit on high-confidence result
+        if any(conf >= _EARLY_EXIT_CONFIDENCE for _, conf in new_candidates):
+            break
     text = choose_best_ocr_text(candidates)
-    if text and crop.shape[0] < 60:
+    # Optimization 4: skip multiline if confidence is high
+    best_conf = max((conf for _, conf in candidates), default=0.0)
+    if text and (crop.shape[0] < 60 or best_conf >= _EARLY_EXIT_CONFIDENCE):
         return normalize_ocr_text(text)
     line_text = _read_multiline_text(crop)
     if line_text:
@@ -139,11 +172,24 @@ def choose_best_ocr_text(candidates: list[tuple[str, float]]) -> str | None:
     return best_text
 
 
-def _get_ocr_engine() -> RapidOCR:
-    global _OCR_ENGINE
-    if _OCR_ENGINE is None:
-        _OCR_ENGINE = RapidOCR(use_cuda=should_use_ocr_cuda(ort.get_available_providers(), ort.get_device()))
-    return _OCR_ENGINE
+def _get_ocr_engine_full() -> RapidOCR:
+    global _OCR_ENGINE_FULL
+    if _OCR_ENGINE_FULL is None:
+        cuda = should_use_ocr_cuda(ort.get_available_providers(), ort.get_device())
+        _OCR_ENGINE_FULL = RapidOCR(use_cuda=cuda)
+    return _OCR_ENGINE_FULL
+
+
+def _get_ocr_engine_rec() -> RapidOCR:
+    global _OCR_ENGINE_REC
+    if _OCR_ENGINE_REC is None:
+        cuda = should_use_ocr_cuda(ort.get_available_providers(), ort.get_device())
+        _OCR_ENGINE_REC = RapidOCR(
+            use_cuda=cuda,
+            use_text_det=False,
+            use_angle_cls=False,
+        )
+    return _OCR_ENGINE_REC
 
 
 def _clamp_bbox(bbox: list[int], width: int, height: int) -> tuple[int, int, int, int]:
@@ -205,7 +251,7 @@ def _read_multiline_text(crop) -> str | None:
         pad_top = max(top - 4, 0)
         pad_bottom = min(bottom + 4, crop.shape[0])
         line_crop = crop[pad_top:pad_bottom, :]
-        result, _ = _get_ocr_engine()(line_crop)
+        result, _ = _get_ocr_engine_full()(line_crop)
         text = choose_best_ocr_text(_extract_ocr_candidates(result))
         if text:
             line_texts.append(text)

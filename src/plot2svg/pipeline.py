@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -44,14 +45,21 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     proposals = propose_components(proposal_source, cfg.output_dir, cfg)
     scene_graph = build_scene_graph(analysis.width, analysis.height, proposals)
     vector_image = _load_vector_image(vector_source)
-    scene_graph = populate_text_nodes(vector_image, scene_graph, cfg)
+
+    # Optimization 6: OCR + vectorize in parallel (vectorize only reads bbox)
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        ocr_future = executor.submit(populate_text_nodes, vector_image, scene_graph, cfg)
+        region_future = executor.submit(vectorize_regions, vector_image, scene_graph.nodes)
+        stroke_future = executor.submit(vectorize_strokes, vector_image, scene_graph.nodes)
+
+        scene_graph = ocr_future.result()
+        region_results = region_future.result()
+        stroke_results = stroke_future.result()
+
     scene_graph = promote_component_groups(scene_graph)
     scene_graph = detect_structures(scene_graph)
     scene_graph_path = cfg.output_dir / "scene_graph.json"
     scene_graph.write_json(scene_graph_path)
-
-    region_results = vectorize_regions(vector_image, scene_graph.nodes)
-    stroke_results = vectorize_strokes(vector_image, scene_graph.nodes)
     svg_export = export_svg(
         scene_graph,
         region_results,

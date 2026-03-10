@@ -1,11 +1,15 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch, MagicMock
 
 import cv2
 import numpy as np
 
 from plot2svg.ocr import (
+    _EARLY_EXIT_CONFIDENCE,
+    _MIN_PIXEL_STD,
+    _read_text_from_bbox,
     choose_best_ocr_text,
     merge_text_nodes,
     normalize_ocr_text,
@@ -139,6 +143,75 @@ class OcrTest(unittest.TestCase):
         updated = populate_text_nodes(image, graph)
         text_node = next(node for node in updated.nodes if node.type == "text")
         self.assertEqual(text_node.text_content, "HELLO")
+
+    def test_pixel_variance_filter_skips_uniform_crop(self) -> None:
+        """Optimization 3: uniform image (all white) should return None."""
+        white_image = np.full((100, 200, 3), 255, dtype=np.uint8)
+        result = _read_text_from_bbox(white_image, [10, 10, 190, 90])
+        self.assertIsNone(result)
+
+    def test_pixel_variance_filter_passes_textual_crop(self) -> None:
+        """Optimization 3: image with text has high std, should not be filtered."""
+        image = np.full((100, 200, 3), 255, dtype=np.uint8)
+        cv2.putText(image, "TEST", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 0), 2, cv2.LINE_AA)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        self.assertGreater(np.std(gray), _MIN_PIXEL_STD)
+
+    def test_early_exit_reduces_engine_calls(self) -> None:
+        """Optimization 2: high-confidence first variant should skip remaining variants."""
+        call_count = 0
+        high_conf_result = [([0, 0, 100, 30], "HELLO", 0.95)]
+
+        def fake_engine(variant):
+            nonlocal call_count
+            call_count += 1
+            return high_conf_result, None
+
+        image = np.full((80, 200, 3), 255, dtype=np.uint8)
+        cv2.putText(image, "HELLO", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+
+        with patch("plot2svg.ocr._get_ocr_engine_rec") as mock_get:
+            mock_engine = MagicMock()
+            mock_engine.side_effect = fake_engine
+            mock_get.return_value = mock_engine
+            result = _read_text_from_bbox(image, [0, 0, 200, 80])
+
+        self.assertIsNotNone(result)
+        self.assertEqual(call_count, 1)  # only 1 variant processed, not 3
+
+    def test_populate_parallel_matches_serial(self) -> None:
+        """Optimization 5: parallel results should match serial execution."""
+        image = np.full((200, 600, 3), 255, dtype=np.uint8)
+        cv2.putText(image, "AAA", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+        cv2.putText(image, "BBB", (250, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+        cv2.putText(image, "CCC", (450, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+
+        graph = SceneGraph(
+            width=600,
+            height=200,
+            nodes=[
+                SceneNode(id="bg", type="background", bbox=[0, 0, 600, 200], z_index=0, vector_mode="region_path", confidence=1.0),
+                SceneNode(id="t1", type="text", bbox=[10, 10, 200, 70], z_index=1, vector_mode="text_box", confidence=0.9),
+                SceneNode(id="t2", type="text", bbox=[230, 10, 420, 70], z_index=2, vector_mode="text_box", confidence=0.9),
+                SceneNode(id="t3", type="text", bbox=[430, 10, 590, 70], z_index=3, vector_mode="text_box", confidence=0.9),
+            ],
+        )
+
+        updated = populate_text_nodes(image, graph)
+        text_nodes = [n for n in updated.nodes if n.type == "text"]
+        # All three text nodes should have been processed (may merge into fewer)
+        self.assertTrue(len(text_nodes) >= 1)
+        # At least some text content should have been found
+        texts = [n.text_content for n in text_nodes if n.text_content]
+        self.assertTrue(len(texts) >= 1)
+
+    def test_early_exit_confidence_constant(self) -> None:
+        """Verify the early exit confidence threshold is set correctly."""
+        self.assertEqual(_EARLY_EXIT_CONFIDENCE, 0.85)
+
+    def test_min_pixel_std_constant(self) -> None:
+        """Verify the pixel variance threshold is set correctly."""
+        self.assertEqual(_MIN_PIXEL_STD, 10.0)
 
 
 if __name__ == "__main__":

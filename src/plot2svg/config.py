@@ -22,6 +22,7 @@ class PipelineConfig:
     enable_sam2: bool = False
     enable_edge_model: bool = False
     tile_size: int = 1024
+    ocr_max_workers: int = 0
 
     def __post_init__(self) -> None:
         self.input_path = Path(self.input_path)
@@ -32,6 +33,8 @@ class PipelineConfig:
             raise ValueError(f"Unsupported execution profile: {self.execution_profile}")
         if self.tile_size <= 0:
             raise ValueError("tile_size must be positive")
+        if self.ocr_max_workers < 0:
+            raise ValueError("ocr_max_workers must be >= 0 (0 = auto)")
 
     def proposal_max_side(self) -> int:
         if self.execution_profile == "speed":

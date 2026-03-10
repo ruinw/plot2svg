@@ -53,6 +53,7 @@ def _convert_image(
     image_path: str | None,
     profile: str,
     enhancement_mode: str,
+    ocr_threads: int,
 ) -> tuple[str | None, str, str, str | None, str | None]:
     """Run the pipeline and return artifacts for the Gradio UI.
 
@@ -68,6 +69,7 @@ def _convert_image(
             output_dir=Path(tmpdir),
             execution_profile=profile.lower(),
             enhancement_mode=enhancement_mode.lower().replace(" ", "_"),
+            ocr_max_workers=int(ocr_threads),
         )
         artifacts = run_pipeline(cfg)
 
@@ -126,6 +128,13 @@ def build_app():
                     value="auto",
                     label="Enhancement Mode",
                 )
+                ocr_threads_slider = gr.Slider(
+                    minimum=0,
+                    maximum=16,
+                    step=1,
+                    value=0,
+                    label="OCR Threads (0 = auto)",
+                )
                 convert_btn = gr.Button("Convert", variant="primary")
 
             # ---- Right: results ------------------------------------------------
@@ -144,7 +153,7 @@ def build_app():
 
         convert_btn.click(
             fn=_convert_image,
-            inputs=[input_image, profile_radio, enhance_radio],
+            inputs=[input_image, profile_radio, enhance_radio, ocr_threads_slider],
             outputs=[preview_image, svg_display, sg_json, svg_file, json_file],
         )
 
