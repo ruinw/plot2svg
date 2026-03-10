@@ -170,7 +170,7 @@ class OcrTest(unittest.TestCase):
         image = np.full((80, 200, 3), 255, dtype=np.uint8)
         cv2.putText(image, "HELLO", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
 
-        with patch("plot2svg.ocr._get_ocr_engine_rec") as mock_get:
+        with patch("plot2svg.ocr._get_ocr_engine_full") as mock_get:
             mock_engine = MagicMock()
             mock_engine.side_effect = fake_engine
             mock_get.return_value = mock_engine

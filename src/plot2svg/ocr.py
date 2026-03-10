@@ -137,7 +137,7 @@ def _read_text_from_bbox(image, bbox: list[int], cfg: PipelineConfig | None = No
         return None
     candidates: list[tuple[str, float]] = []
     for variant in _prepare_ocr_variants(crop, cfg):
-        result, _ = _get_ocr_engine_rec()(variant)
+        result, _ = _get_ocr_engine_full()(variant)
         new_candidates = _extract_ocr_candidates(result)
         candidates.extend(new_candidates)
         # Optimization 2: early exit on high-confidence result
