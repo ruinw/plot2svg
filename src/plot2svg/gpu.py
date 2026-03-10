@@ -44,16 +44,22 @@ def gpu_device_name() -> str:
 def gpu_status_summary() -> dict[str, object]:
     """Combined GPU status for both OpenCV-CUDA and ONNX-Runtime CUDA."""
     ocr_cuda = False
+    ort_device = "CPU"
     try:
         from .ocr import should_use_ocr_cuda
         import onnxruntime as ort
-        ocr_cuda = should_use_ocr_cuda(ort.get_available_providers(), ort.get_device())
+        providers = ort.get_available_providers()
+        ort_device = ort.get_device()
+        ocr_cuda = should_use_ocr_cuda(providers, ort_device)
     except Exception:
         pass
+    device_name = _DEVICE_NAME
+    if ocr_cuda and not _CUDA_AVAILABLE:
+        device_name = f"GPU (OCR via ONNX Runtime CUDA)"
     return {
         "opencv_cuda": _CUDA_AVAILABLE,
         "ocr_cuda": ocr_cuda,
-        "device_name": _DEVICE_NAME,
+        "device_name": device_name,
     }
 
 

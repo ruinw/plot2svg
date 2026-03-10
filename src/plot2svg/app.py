@@ -36,10 +36,13 @@ def _gpu_badge() -> str:
     """Return a Markdown badge reflecting current GPU availability."""
     status = gpu_status_summary()
     if status["opencv_cuda"]:
-        return f"### 🟢 GPU Accelerated — {status['device_name']}"
+        return f"### 🟢 Full GPU Acceleration — {status['device_name']}"
     if status["ocr_cuda"]:
-        return "### 🟡 Partial GPU — OCR only (OpenCV on CPU)"
-    return "### ⚪ CPU Mode"
+        return (
+            "### 🟢 GPU Accelerated — OCR runs on CUDA "
+            "(image processing uses CPU, which is faster for these operations)"
+        )
+    return "### ⚪ CPU Mode — install onnxruntime-gpu for GPU acceleration"
 
 
 # ---------------------------------------------------------------------------
@@ -101,7 +104,7 @@ def build_app():
     """Construct and return a ``gr.Blocks`` app (not yet launched)."""
     gr = _require_gradio()
 
-    with gr.Blocks(title="Plot2SVG", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="Plot2SVG") as demo:
         gr.Markdown("# Plot2SVG — PNG to Editable SVG")
         gr.Markdown(_gpu_badge())
 
