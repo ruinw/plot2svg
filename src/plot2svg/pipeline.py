@@ -10,6 +10,16 @@ import shutil
 import cv2
 import numpy as np
 
+from .bbox_utils import (
+    _bbox_gap,
+    _bbox_iou,
+    _bbox_overlap,
+    _clamp_bbox,
+    _contains_bbox,
+    _expand_bbox,
+    _matches_text_bbox,
+    _overlaps_existing_region,
+)
 from .color_utils import (
     _bgr_to_hex,
     _hex_to_bgr,
@@ -378,40 +388,6 @@ def _assemble_scene_graph(
     )
 
 
-def _overlaps_existing_region(candidate: SceneNode, existing_regions: list[SceneNode]) -> bool:
-    for node in existing_regions:
-        if _bbox_overlap(candidate.bbox, node.bbox) >= 0.7:
-            return True
-    return False
-
-
-def _bbox_overlap(left: list[int], right: list[int]) -> float:
-    ix1 = max(left[0], right[0])
-    iy1 = max(left[1], right[1])
-    ix2 = min(left[2], right[2])
-    iy2 = min(left[3], right[3])
-    if ix2 <= ix1 or iy2 <= iy1:
-        return 0.0
-    intersection = (ix2 - ix1) * (iy2 - iy1)
-    left_area = max((left[2] - left[0]) * (left[3] - left[1]), 1)
-    right_area = max((right[2] - right[0]) * (right[3] - right[1]), 1)
-    return intersection / min(left_area, right_area)
-
-
-def _bbox_iou(left: list[int], right: list[int]) -> float:
-    ix1 = max(left[0], right[0])
-    iy1 = max(left[1], right[1])
-    ix2 = min(left[2], right[2])
-    iy2 = min(left[3], right[3])
-    if ix2 <= ix1 or iy2 <= iy1:
-        return 0.0
-    intersection = (ix2 - ix1) * (iy2 - iy1)
-    left_area = max((left[2] - left[0]) * (left[3] - left[1]), 1)
-    right_area = max((right[2] - right[0]) * (right[3] - right[1]), 1)
-    union = left_area + right_area - intersection
-    return intersection / max(union, 1)
-
-
 def _looks_like_container_candidate(node: SceneNode, width: int, height: int) -> bool:
     x1, y1, x2, y2 = node.bbox
     area = max(x2 - x1, 1) * max(y2 - y1, 1)
@@ -473,15 +449,6 @@ def _inject_network_container_object(scene_graph: SceneGraph) -> SceneGraph:
             graph_edges=scene_graph.graph_edges[:],
         )
     return scene_graph
-
-
-def _contains_bbox(outer: list[int], inner: list[int], margin: int) -> bool:
-    return (
-        outer[0] - margin <= inner[0]
-        and outer[1] - margin <= inner[1]
-        and outer[2] + margin >= inner[2]
-        and outer[3] + margin >= inner[3]
-    )
 
 
 def _inject_fan_relation(scene_graph: SceneGraph) -> SceneGraph:
@@ -1550,12 +1517,6 @@ def _text_context_near_bbox(text_nodes: list[SceneNode], bbox: list[int]) -> str
     return ' '.join(nearby)
 
 
-def _bbox_gap(left: list[int], right: list[int]) -> int:
-    horizontal_gap = max(left[0] - right[2], right[0] - left[2], 0)
-    vertical_gap = max(left[1] - right[3], right[1] - left[3], 0)
-    return max(horizontal_gap, vertical_gap)
-
-
 def _looks_like_data_chart(text_content: str) -> bool:
     lowered = text_content.lower()
     return any(keyword in lowered for keyword in _CHART_TEXT_KEYWORDS)
@@ -1738,18 +1699,6 @@ def _is_lightweight_text_container(node: SceneNode | None, region_obj: RegionObj
 
 
 
-def _matches_text_bbox(region_bbox: list[int], text_nodes: list[SceneNode]) -> bool:
-    region_area = max((region_bbox[2] - region_bbox[0]) * (region_bbox[3] - region_bbox[1]), 1)
-    for text_node in text_nodes:
-        if _bbox_iou(region_bbox, text_node.bbox) >= 0.8:
-            return True
-        overlap = _bbox_overlap(region_bbox, text_node.bbox)
-        text_area = max((text_node.bbox[2] - text_node.bbox[0]) * (text_node.bbox[3] - text_node.bbox[1]), 1)
-        if overlap >= 0.9 and region_area <= text_area * 2.6:
-            return True
-    return False
-
-
 def _looks_like_large_black_artifact(node: SceneNode, width: int, height: int) -> bool:
     if not _is_near_black(node.fill) and not _is_near_black(node.stroke):
         return False
@@ -1757,20 +1706,6 @@ def _looks_like_large_black_artifact(node: SceneNode, width: int, height: int) -
     area = max(x2 - x1, 1) * max(y2 - y1, 1)
     canvas_area = max(width * height, 1)
     return area >= canvas_area * 0.02
-
-
-def _expand_bbox(bbox: list[int], width: int, height: int, margin: int) -> tuple[int, int, int, int]:
-    x1, y1, x2, y2 = bbox
-    return _clamp_bbox([x1 - margin, y1 - margin, x2 + margin, y2 + margin], width, height)
-
-
-def _clamp_bbox(bbox: list[int], width: int, height: int) -> tuple[int, int, int, int]:
-    x1, y1, x2, y2 = bbox
-    x1 = max(0, min(x1, width - 1))
-    y1 = max(0, min(y1, height - 1))
-    x2 = max(x1 + 1, min(x2, width))
-    y2 = max(y1 + 1, min(y2, height))
-    return x1, y1, x2, y2
 
 
 def _choose_processing_sources(
