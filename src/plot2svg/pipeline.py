@@ -6,12 +6,22 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 import shutil
-from typing import Callable
 
 import cv2
 import numpy as np
 
 from .image_io import read_image, write_image
+from .inpaint import (
+    _bbox_mask,
+    _erase_region_nodes,
+    _heal_masked_stage_image,
+    _inpaint_node_and_icon_regions,
+    _inpaint_stroke_regions,
+    _is_exportable_stroke_node,
+    _mask_for_nodes,
+    _rasterize_node_mask,
+    _should_inpaint_stroke_node,
+)
 
 from .analyze import analyze_image
 from .config import PipelineConfig
@@ -1651,105 +1661,6 @@ def _build_region_vector_ignore_mask(
     return _merge_masks(text_mask, node_mask, stroke_mask, panel_arrow_mask)
 
 
-def _mask_ignored_regions(image: np.ndarray, ignore_mask: np.ndarray) -> np.ndarray:
-    if ignore_mask.size == 0 or not np.any(ignore_mask):
-        return image.copy()
-    cleaned = image.copy()
-    cleaned[ignore_mask > 0] = 255
-    return cleaned
-
-
-def _heal_masked_stage_image(
-    image: np.ndarray,
-    ignore_mask: np.ndarray,
-    kernel_size: int = 7,
-) -> np.ndarray:
-    cleaned = _mask_ignored_regions(image, ignore_mask)
-    if ignore_mask.size == 0 or not np.any(ignore_mask):
-        return cleaned
-
-    kernel_size = max(kernel_size | 1, 3)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
-    healed = cleaned.copy()
-
-    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
-        np.where(ignore_mask > 0, 255, 0).astype(np.uint8),
-        connectivity=8,
-    )
-    for label in range(1, num_labels):
-        x, y, width, height, area = stats[label]
-        if area <= 0:
-            continue
-
-        component_mask = np.where(labels == label, 255, 0).astype(np.uint8)
-        ring_mask = cv2.dilate(component_mask, kernel, iterations=1)
-        ring_mask = cv2.subtract(ring_mask, component_mask)
-        ring_pixels = image[ring_mask > 0]
-        if ring_pixels.size == 0:
-            continue
-
-        quantized = np.clip(((ring_pixels.astype(np.int32) + 8) // 16) * 16, 0, 255)
-        colors, counts = np.unique(quantized, axis=0, return_counts=True)
-        dominant_quantized = colors[int(np.argmax(counts))]
-        dominant_pixels = ring_pixels[np.all(quantized == dominant_quantized, axis=1)]
-        dominant = np.median(dominant_pixels, axis=0).astype(np.uint8)
-        healed[component_mask > 0] = dominant
-
-    closed = cv2.morphologyEx(healed, cv2.MORPH_CLOSE, kernel)
-    expanded_mask = cv2.dilate(ignore_mask, kernel, iterations=1)
-    healed[expanded_mask > 0] = closed[expanded_mask > 0]
-    return healed
-
-
-def _mask_for_nodes(
-    image: np.ndarray,
-    nodes: list[SceneNode],
-    padding: int = 0,
-    artifacts_dir: Path | None = None,
-) -> np.ndarray:
-    if not nodes:
-        return np.zeros(image.shape[:2], dtype=np.uint8)
-
-    height, width = image.shape[:2]
-    mask = np.zeros((height, width), dtype=np.uint8)
-    for node in nodes:
-        if node.shape_hint == 'panel' and node.fill:
-            node_mask = _panel_background_mask(image, node)
-            if node_mask is None:
-                node_mask = _bbox_mask(node.bbox, width, height)
-        else:
-            node_mask = _rasterize_node_mask(node, width, height, artifacts_dir)
-            if node_mask is None:
-                node_mask = _bbox_mask(node.bbox, width, height)
-        mask = cv2.bitwise_or(mask, node_mask)
-
-    if padding > 0 and np.any(mask):
-        kernel_size = max((padding * 2) + 1, 3)
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
-        mask = cv2.dilate(mask, kernel, iterations=1)
-    return mask
-
-
-def _inpaint_node_and_icon_regions(
-    image: np.ndarray,
-    scene_graph: SceneGraph,
-    node_ids: set[str],
-    padding: int,
-    artifacts_dir: Path | None = None,
-    existing_ignore_mask: np.ndarray | None = None,
-    kernel_size: int = 7,
-) -> tuple[np.ndarray, np.ndarray]:
-    mask = _build_inpaint_mask(
-        image,
-        scene_graph,
-        lambda node: node.id in node_ids,
-        padding=padding,
-        artifacts_dir=artifacts_dir,
-    )
-    combined_mask = _merge_masks(existing_ignore_mask, mask)
-    return _heal_masked_stage_image(image, combined_mask, kernel_size=kernel_size), mask
-
-
 def _filter_stroke_scene_graph(scene_graph: SceneGraph) -> SceneGraph:
     filtered_nodes = [
         node
@@ -1772,119 +1683,6 @@ def _filter_stroke_scene_graph(scene_graph: SceneGraph) -> SceneGraph:
         raster_objects=scene_graph.raster_objects[:],
         graph_edges=scene_graph.graph_edges[:],
     )
-
-
-def _is_exportable_stroke_node(node: SceneNode, scene_graph: SceneGraph) -> bool:
-    x1, y1, x2, y2 = node.bbox
-    width = max(x2 - x1, 1)
-    height = max(y2 - y1, 1)
-    area = width * height
-    canvas_area = max(scene_graph.width * scene_graph.height, 1)
-    width_ratio = width / max(scene_graph.width, 1)
-    height_ratio = height / max(scene_graph.height, 1)
-    if area >= canvas_area * 0.25:
-        return False
-    if width_ratio >= 0.85 and height_ratio >= 0.50:
-        return False
-    if height_ratio >= 0.85 and width_ratio >= 0.50:
-        return False
-    return True
-
-
-def _inpaint_stroke_regions(
-    image: np.ndarray,
-    scene_graph: SceneGraph,
-    padding: int,
-    artifacts_dir: Path | None = None,
-    existing_ignore_mask: np.ndarray | None = None,
-    kernel_size: int = 7,
-) -> tuple[np.ndarray, np.ndarray]:
-    mask = _build_inpaint_mask(
-        image,
-        scene_graph,
-        lambda node: node.type == 'stroke' and _should_inpaint_stroke_node(node, scene_graph),
-        padding=padding,
-        artifacts_dir=artifacts_dir,
-    )
-    combined_mask = _merge_masks(existing_ignore_mask, mask)
-    return _heal_masked_stage_image(image, combined_mask, kernel_size=kernel_size), mask
-
-
-def _erase_region_nodes(
-    image: np.ndarray,
-    nodes: list[SceneNode],
-    padding: int = 0,
-) -> np.ndarray:
-    mask = _mask_for_nodes(image, nodes, padding=padding, artifacts_dir=None)
-    return _mask_ignored_regions(image, mask)
-
-
-def _panel_background_mask(image: np.ndarray, node: SceneNode) -> np.ndarray | None:
-    target_bgr = _hex_to_bgr(node.fill)
-    if target_bgr is None:
-        return None
-    height, width = image.shape[:2]
-    x1, y1, x2, y2 = _clamp_bbox(node.bbox, width, height)
-    crop = image[y1:y2, x1:x2]
-    if crop.size == 0:
-        return None
-    color_delta = np.max(np.abs(crop.astype(np.int16) - np.array(target_bgr, dtype=np.int16)), axis=2)
-    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-    local_mask = np.where((color_delta <= 32) & (gray >= 170), 255, 0).astype(np.uint8)
-    if not np.any(local_mask):
-        return None
-    full_mask = np.zeros((height, width), dtype=np.uint8)
-    full_mask[y1:y2, x1:x2] = local_mask
-    return full_mask
-
-
-
-
-def _should_inpaint_stroke_node(node: SceneNode, scene_graph: SceneGraph) -> bool:
-    return _is_exportable_stroke_node(node, scene_graph)
-
-
-def _build_inpaint_mask(
-    image: np.ndarray,
-    scene_graph: SceneGraph,
-    predicate: Callable[[SceneNode], bool],
-    *,
-    padding: int,
-    artifacts_dir: Path | None,
-) -> np.ndarray:
-    selected_nodes = [node for node in scene_graph.nodes if predicate(node)]
-    return _mask_for_nodes(image, selected_nodes, padding=padding, artifacts_dir=artifacts_dir)
-
-
-def _rasterize_node_mask(
-    node: SceneNode,
-    width: int,
-    height: int,
-    artifacts_dir: Path | None,
-) -> np.ndarray | None:
-    if artifacts_dir is None or not node.source_mask:
-        return None
-    mask_path = artifacts_dir / node.source_mask
-    if not mask_path.exists():
-        return None
-    local_mask = read_image(mask_path, cv2.IMREAD_GRAYSCALE)
-    if local_mask is None:
-        return None
-    x1, y1, x2, y2 = _clamp_bbox(node.bbox, width, height)
-    target_w = max(x2 - x1, 1)
-    target_h = max(y2 - y1, 1)
-    if local_mask.shape[1] != target_w or local_mask.shape[0] != target_h:
-        local_mask = cv2.resize(local_mask, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
-    full_mask = np.zeros((height, width), dtype=np.uint8)
-    full_mask[y1:y2, x1:x2] = np.where(local_mask > 0, 255, 0).astype(np.uint8)
-    return full_mask
-
-
-def _bbox_mask(bbox: list[int], width: int, height: int) -> np.ndarray:
-    mask = np.zeros((height, width), dtype=np.uint8)
-    x1, y1, x2, y2 = _clamp_bbox(bbox, width, height)
-    mask[y1:y2, x1:x2] = 255
-    return mask
 
 
 
