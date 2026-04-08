@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
+import numpy as np
 
 
 @dataclass(slots=True)
@@ -60,13 +61,29 @@ def analyze_image(path: Path) -> AnalysisResult:
 
 def _choose_route(image_path: Path, width: int, height: int, aspect_ratio: float) -> str:
     stem = image_path.stem.lower()
-    if "signature" in stem or "sign" in stem:
+    if ("signature" in stem or "sign" in stem) and _looks_like_signature_lineart(image_path):
         return "signature_lineart"
     if width >= 3000 and aspect_ratio >= 2.4:
         return "wide_hires"
     if max(width, height) <= 900:
         return "small_lowres"
     return "flat_graphics"
+
+
+def _looks_like_signature_lineart(path: Path) -> bool:
+    with Image.open(path) as image:
+        rgb = image.convert("RGB").resize((256, 256))
+        arr = np.asarray(rgb, dtype=np.uint8)
+
+    maxc = arr.max(axis=2).astype(np.float32)
+    minc = arr.min(axis=2).astype(np.float32)
+    saturation = np.zeros_like(maxc, dtype=np.float32)
+    nonzero = maxc > 0
+    saturation[nonzero] = (maxc[nonzero] - minc[nonzero]) / maxc[nonzero] * 255.0
+    gray = arr.mean(axis=2)
+    dark_ratio = float(np.mean(gray < 220))
+    p95_saturation = float(np.percentile(saturation, 95))
+    return p95_saturation <= 64.0 and dark_ratio <= 0.18
 
 
 def _read_image_metadata(path: Path) -> tuple[int, int, bool]:

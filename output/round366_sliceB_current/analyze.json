@@ -1,0 +1,11 @@
+{
+  "width": 111,
+  "height": 149,
+  "aspect_ratio": 0.7449664429530202,
+  "color_complexity": 1.0,
+  "edge_density": 0.1257633472398573,
+  "alpha_present": false,
+  "route_type": "small_lowres",
+  "should_tile": false,
+  "should_super_resolve": true
+}

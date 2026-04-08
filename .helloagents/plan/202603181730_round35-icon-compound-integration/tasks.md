@@ -1,0 +1,29 @@
+# ????: round35-icon-compound-integration
+
+```yaml
+@feature: round35-icon-compound-integration
+@created: 2026-03-18
+@status: in_progress
+@mode: R3
+```
+
+<!-- LIVE_STATUS_BEGIN -->
+??: in_progress | ??: 0/5 (0%) | ??: 2026-03-18 17:30:00
+??: ?? Round 35 ??????????
+<!-- LIVE_STATUS_END -->
+
+## ????
+
+| ?? | ?? | ?? | ?? |
+|------|------|------|------|
+| 0 | 0 | 0 | 5 |
+
+---
+
+## ????
+
+- [ ] 1.1 ? `scene_graph.py` ?? `IconObject` ????? | depends_on: []
+- [ ] 1.2 ? `object_svg_exporter.py` ?? `IconObject evenodd` ??????? | depends_on: []
+- [ ] 1.3 ? `pipeline.py` ?? `raster_candidate -> IconObject` ???? | depends_on: []
+- [ ] 2.1 ?? `IconObject` / `icon_vectorizer` / pipeline ?? | depends_on: [1.1, 1.2, 1.3]
+- [ ] 2.2 ?? `sandbox_text_inpainting.py` ? compound path ????????? | depends_on: [2.1]

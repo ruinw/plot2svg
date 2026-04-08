@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
 
 import cv2
+from typing import Union
+
 import numpy as np
 
-from .gpu import gaussian_blur, threshold
-from .scene_graph import SceneNode
+from .image_io import read_image, write_image
+
+from .scene_graph import SceneGraph, SceneNode
+from .stroke_detector import detect_strokes
 
 
 ImageInput = Union[Path, np.ndarray]
@@ -25,68 +28,54 @@ class StrokeVectorResult:
     curve_count: int
 
 
-def vectorize_strokes(image_path: ImageInput, nodes: list[SceneNode]) -> list[StrokeVectorResult]:
-    """Generate stroke SVG fragments from real image regions."""
+def vectorize_strokes(
+    image_path: ImageInput,
+    nodes: list[SceneNode],
+    coordinate_scale: float = 1.0,
+) -> list[StrokeVectorResult]:
+    """Generate editable stroke polylines from stroke primitives."""
 
-    image = _load_gray_image(image_path)
+    if not nodes:
+        return []
+    width = max(node.bbox[2] for node in nodes)
+    height = max(node.bbox[3] for node in nodes)
+    graph = SceneGraph(width=width, height=height, nodes=nodes)
+    primitives = detect_strokes(image_path, graph, coordinate_scale)
     results: list[StrokeVectorResult] = []
+    emitted_node_ids: set[str] = set()
+    for primitive in primitives:
+        commands = [f"M {primitive.points[0][0]:.1f} {primitive.points[0][1]:.1f}"]
+        for point in primitive.points[1:]:
+            commands.append(f"L {point[0]:.1f} {point[1]:.1f}")
+        results.append(
+            StrokeVectorResult(
+                component_id=primitive.node_id,
+                svg_fragment=" ".join(commands),
+                curve_count=max(len(primitive.points) - 1, 1),
+            )
+        )
+        emitted_node_ids.add(primitive.node_id)
+
+    if len(emitted_node_ids) == len([node for node in nodes if node.type == 'stroke']):
+        return results
+
+    gray_image = _load_gray_image(image_path)
     for node in nodes:
-        if node.type != "stroke":
+        if node.type != 'stroke' or node.id in emitted_node_ids:
             continue
-        x1, y1, x2, y2 = _clamp_bbox(node.bbox, image.shape[1], image.shape[0])
-        crop = image[y1:y2, x1:x2]
-        fragment, curve_count = _trace_stroke_crop(crop, x1, y1)
+        points = _fallback_stroke_points(gray_image, node.bbox, coordinate_scale)
+        commands = [f"M {points[0][0]:.1f} {points[0][1]:.1f}"]
+        for point in points[1:]:
+            commands.append(f"L {point[0]:.1f} {point[1]:.1f}")
         results.append(
             StrokeVectorResult(
                 component_id=node.id,
-                svg_fragment=fragment,
-                curve_count=curve_count,
+                svg_fragment=" ".join(commands),
+                curve_count=max(len(points) - 1, 1),
             )
         )
     return results
 
-
-def _trace_stroke_crop(crop: np.ndarray, offset_x: int, offset_y: int) -> tuple[str, int]:
-    if crop.size == 0:
-        return f"M {offset_x} {offset_y} L {offset_x + 1} {offset_y + 1}", 1
-
-    blurred = gaussian_blur(crop, (3, 3), 0)
-    _, binary = threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    kernel = np.ones((2, 2), np.uint8)
-    refined = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
-    contours, _ = cv2.findContours(refined, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
-    path_parts: list[str] = []
-    kept = 0
-    for contour in sorted(contours, key=cv2.contourArea, reverse=True):
-        if cv2.contourArea(contour) < 4:
-            continue
-        approx = cv2.approxPolyDP(contour, epsilon=1.5, closed=False)
-        if len(approx) < 2:
-            continue
-        points = approx[:, 0, :]
-        commands = [f"M {int(points[0][0] + offset_x)} {int(points[0][1] + offset_y)}"]
-        for point in points[1:]:
-            commands.append(f"L {int(point[0] + offset_x)} {int(point[1] + offset_y)}")
-        path_parts.append(" ".join(commands))
-        kept += 1
-        if kept >= 32:
-            break
-
-    if not path_parts:
-        height, width = crop.shape[:2]
-        return f"M {offset_x} {offset_y} L {offset_x + max(width - 1, 1)} {offset_y + max(height - 1, 1)}", 1
-
-    return " ".join(path_parts), kept
-
-
-def _clamp_bbox(bbox: list[int], width: int, height: int) -> tuple[int, int, int, int]:
-    x1, y1, x2, y2 = bbox
-    x1 = max(0, min(x1, width - 1))
-    y1 = max(0, min(y1, height - 1))
-    x2 = max(x1 + 1, min(x2, width))
-    y2 = max(y1 + 1, min(y2, height))
-    return x1, y1, x2, y2
 
 
 def _load_gray_image(image_input: ImageInput) -> np.ndarray:
@@ -94,7 +83,71 @@ def _load_gray_image(image_input: ImageInput) -> np.ndarray:
         if image_input.ndim == 2:
             return image_input
         return cv2.cvtColor(image_input, cv2.COLOR_BGR2GRAY)
-    image = cv2.imread(str(Path(image_input)), cv2.IMREAD_GRAYSCALE)
+    image = read_image(Path(image_input), cv2.IMREAD_GRAYSCALE)
     if image is None:
         raise ValueError(f"Failed to read image: {image_input}")
     return image
+
+
+def _fallback_stroke_points(image: np.ndarray, bbox: list[int], coordinate_scale: float) -> list[list[float]]:
+    x1, y1, x2, y2 = _scale_bbox(bbox, coordinate_scale, image.shape[1], image.shape[0])
+    crop = image[y1:y2, x1:x2]
+    if crop.size == 0:
+        return [[float(bbox[0]), float(bbox[1])], [float(bbox[2]), float(bbox[3])]]
+    _, mask = cv2.threshold(crop, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    coords = np.column_stack(np.where(mask > 0))
+    if len(coords) < 2:
+        return [[float(bbox[0]), float(bbox[1])], [float(bbox[2]), float(bbox[3])]]
+    return _principal_polyline(coords, float(bbox[0]), float(bbox[1]))
+
+
+def _principal_polyline(coords: np.ndarray, offset_x: float, offset_y: float) -> list[list[float]]:
+    points = coords[:, ::-1].astype(np.float32)
+    center = points.mean(axis=0)
+    _, _, vt = np.linalg.svd(points - center, full_matrices=False)
+    axis = vt[0]
+    projection = (points - center) @ axis
+    bins = max(min(len(points) // 40, 8), 2)
+    edges = np.linspace(float(projection.min()), float(projection.max()), num=bins + 1)
+    sampled: list[list[float]] = []
+    for start, end in zip(edges[:-1], edges[1:]):
+        if end == edges[-1]:
+            chunk = points[(projection >= start) & (projection <= end)]
+        else:
+            chunk = points[(projection >= start) & (projection < end)]
+        if len(chunk) == 0:
+            continue
+        avg = chunk.mean(axis=0)
+        sampled.append([float(avg[0] + offset_x), float(avg[1] + offset_y)])
+    if len(sampled) < 2:
+        low = points[int(np.argmin(projection))]
+        high = points[int(np.argmax(projection))]
+        sampled = [
+            [float(low[0] + offset_x), float(low[1] + offset_y)],
+            [float(high[0] + offset_x), float(high[1] + offset_y)],
+        ]
+    return _dedupe_points(sampled)
+
+
+def _dedupe_points(points: list[list[float]]) -> list[list[float]]:
+    deduped: list[list[float]] = []
+    for point in points:
+        if deduped and abs(deduped[-1][0] - point[0]) < 0.5 and abs(deduped[-1][1] - point[1]) < 0.5:
+            continue
+        deduped.append(point)
+    return deduped
+
+
+def _scale_bbox(
+    bbox: list[int],
+    coordinate_scale: float,
+    width: int,
+    height: int,
+) -> tuple[int, int, int, int]:
+    scaled = [int(round(coord * coordinate_scale)) for coord in bbox]
+    x1, y1, x2, y2 = scaled
+    x1 = max(0, min(x1, width - 1))
+    y1 = max(0, min(y1, height - 1))
+    x2 = max(x1 + 1, min(x2, width))
+    y2 = max(y1 + 1, min(y2, height))
+    return x1, y1, x2, y2

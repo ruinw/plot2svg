@@ -1,0 +1,11 @@
+{
+  "image_path": "output\\round34_object_scale_isolation\\enhanced.png",
+  "mode": "light",
+  "tiled": false,
+  "scale_factor": 1.0,
+  "notes": [
+    "route=flat_graphics",
+    "mode=light",
+    "applied_light_enhancement"
+  ]
+}

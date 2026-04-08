@@ -1,0 +1,381 @@
+{
+  "width": 111,
+  "height": 149,
+  "nodes": [
+    {
+      "id": "background-root",
+      "type": "background",
+      "bbox": [
+        0,
+        0,
+        111,
+        149
+      ],
+      "z_index": 0,
+      "vector_mode": "region_path",
+      "confidence": 1.0,
+      "fill": "#ffffff",
+      "fill_opacity": null,
+      "stroke": null,
+      "stroke_width": null,
+      "source_mask": null,
+      "text_content": null,
+      "group_id": null,
+      "component_role": null,
+      "children": [],
+      "shape_hint": null
+    },
+    {
+      "id": "region-000",
+      "type": "region",
+      "bbox": [
+        14,
+        79,
+        38,
+        103
+      ],
+      "z_index": 1,
+      "vector_mode": "region_path",
+      "confidence": 0.8038194444444444,
+      "fill": "#e0f0f0",
+      "fill_opacity": 0.55,
+      "stroke": "#e0f0f0",
+      "stroke_width": null,
+      "source_mask": "masks/region-000.png",
+      "text_content": null,
+      "group_id": "component-text-overlay-001",
+      "component_role": "container_shape",
+      "children": [],
+      "shape_hint": "raster_candidate"
+    },
+    {
+      "id": "stage2-stroke-000",
+      "type": "stroke",
+      "bbox": [
+        15,
+        68,
+        91,
+        103
+      ],
+      "z_index": 2,
+      "vector_mode": "stroke_path",
+      "confidence": 0.7255639097744361,
+      "fill": null,
+      "fill_opacity": null,
+      "stroke": "#000000",
+      "stroke_width": null,
+      "source_mask": "masks/stage2-stroke-000.png",
+      "text_content": null,
+      "group_id": "component-stage2-stroke-000",
+      "component_role": "connector_path",
+      "children": [],
+      "shape_hint": null
+    },
+    {
+      "id": "text-overlay-000",
+      "type": "text",
+      "bbox": [
+        26,
+        29,
+        61,
+        45
+      ],
+      "z_index": 3,
+      "vector_mode": "text_box",
+      "confidence": 0.7469132840633392,
+      "fill": null,
+      "fill_opacity": null,
+      "stroke": "#000000",
+      "stroke_width": null,
+      "source_mask": null,
+      "text_content": "MAF",
+      "group_id": "component-text-overlay-000",
+      "component_role": "label_text",
+      "children": [],
+      "shape_hint": null
+    },
+    {
+      "id": "text-overlay-001",
+      "type": "text",
+      "bbox": [
+        36,
+        109,
+        70,
+        124
+      ],
+      "z_index": 4,
+      "vector_mode": "text_box",
+      "confidence": 0.7482818514108658,
+      "fill": null,
+      "fill_opacity": null,
+      "stroke": "#000000",
+      "stroke_width": null,
+      "source_mask": null,
+      "text_content": "MAF",
+      "group_id": "component-text-overlay-001",
+      "component_role": "label_text",
+      "children": [],
+      "shape_hint": null
+    },
+    {
+      "id": "text-overlay-002",
+      "type": "text",
+      "bbox": [
+        4,
+        128,
+        103,
+        143
+      ],
+      "z_index": 5,
+      "vector_mode": "text_box",
+      "confidence": 0.8665401498476665,
+      "fill": null,
+      "fill_opacity": null,
+      "stroke": "#000000",
+      "stroke_width": null,
+      "source_mask": null,
+      "text_content": "Mutation Files",
+      "group_id": "component-text-overlay-002",
+      "component_role": "label_text",
+      "children": [],
+      "shape_hint": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "component-text-overlay-000",
+      "role": "text_label",
+      "bbox": [
+        26,
+        29,
+        61,
+        45
+      ],
+      "child_ids": [
+        "text-overlay-000"
+      ],
+      "shape_type": null,
+      "direction": null,
+      "contains_group_ids": []
+    },
+    {
+      "id": "component-text-overlay-001",
+      "role": "labeled_component",
+      "bbox": [
+        14,
+        79,
+        70,
+        124
+      ],
+      "child_ids": [
+        "text-overlay-001",
+        "region-000"
+      ],
+      "shape_type": "box",
+      "direction": null,
+      "contains_group_ids": []
+    },
+    {
+      "id": "component-text-overlay-002",
+      "role": "text_label",
+      "bbox": [
+        4,
+        128,
+        103,
+        143
+      ],
+      "child_ids": [
+        "text-overlay-002"
+      ],
+      "shape_type": null,
+      "direction": null,
+      "contains_group_ids": []
+    },
+    {
+      "id": "component-stage2-stroke-000",
+      "role": "connector",
+      "bbox": [
+        15,
+        68,
+        91,
+        103
+      ],
+      "child_ids": [
+        "stage2-stroke-000"
+      ],
+      "shape_type": "arrow",
+      "direction": "right",
+      "contains_group_ids": []
+    }
+  ],
+  "relations": [
+    {
+      "id": "relation-component-stage2-stroke-000",
+      "relation_type": "connector",
+      "source_ids": [
+        "region-000"
+      ],
+      "target_ids": [
+        "text-overlay-001"
+      ],
+      "backbone_id": "stage2-stroke-000",
+      "group_id": "component-stage2-stroke-000",
+      "metadata": {
+        "direction": "right",
+        "shape_type": "arrow"
+      }
+    }
+  ],
+  "objects": [],
+  "stroke_primitives": [
+    {
+      "id": "stroke-primitive-stage2-stroke-000",
+      "node_id": "stage2-stroke-000",
+      "points": [
+        [
+          86.37984466552734,
+          86.55813598632812
+        ],
+        [
+          78.35955047607422,
+          92.91011047363281
+        ],
+        [
+          67.48333740234375,
+          94.0
+        ],
+        [
+          57.41071319580078,
+          92.67857360839844
+        ],
+        [
+          49.25,
+          95.375
+        ],
+        [
+          37.298248291015625,
+          91.22807312011719
+        ],
+        [
+          30.5,
+          90.68181610107422
+        ],
+        [
+          17.54744529724121,
+          91.6496353149414
+        ]
+      ],
+      "width": 8.566517586284622,
+      "arrow_head": {
+        "tip": [
+          17.54744529724121,
+          91.6496353149414
+        ],
+        "left": [
+          35.207332611083984,
+          98.06143951416016
+        ],
+        "right": [
+          34.05836868286133,
+          82.68457794189453
+        ]
+      },
+      "metadata": {
+        "source": "stroke_detector",
+        "detector_mode": "clahe+adaptive+contrast+blackhat",
+        "arrow_absorbed": false,
+        "used_skeleton": false,
+        "absorbed_region_ids": [],
+        "dense_reconstruction": false
+      }
+    }
+  ],
+  "node_objects": [],
+  "region_objects": [
+    {
+      "id": "region-object-region-000",
+      "node_id": "region-000",
+      "outer_path": "M 18 79 L 18 97 L 30 97 L 31 100 L 37 97 L 37 79 Z",
+      "holes": [],
+      "fill": "#e0f0f0",
+      "fill_opacity": 0.55,
+      "stroke": "#e0f0f0",
+      "metadata": {
+        "source": "region_vectorizer",
+        "entity_valid": true,
+        "contrast_to_surround": 212.673,
+        "contrast_to_white": 37.105
+      }
+    }
+  ],
+  "icon_objects": [],
+  "raster_objects": [],
+  "graph_edges": [
+    {
+      "id": "graph-edge-stroke-primitive-stage2-stroke-000",
+      "source_id": "text-overlay-001",
+      "target_id": null,
+      "path": [
+        [
+          61.06263328863697,
+          109.0
+        ],
+        [
+          78.35955047607422,
+          92.91011047363281
+        ],
+        [
+          67.48333740234375,
+          94.0
+        ],
+        [
+          57.41071319580078,
+          92.67857360839844
+        ],
+        [
+          49.25,
+          95.375
+        ],
+        [
+          37.298248291015625,
+          91.22807312011719
+        ],
+        [
+          30.5,
+          90.68181610107422
+        ],
+        [
+          17.54744529724121,
+          91.6496353149414
+        ]
+      ],
+      "backbone_id": "stage2-stroke-000",
+      "source_kind": "text",
+      "target_kind": null,
+      "arrow_head": {
+        "tip": [
+          17.54744529724121,
+          91.6496353149414
+        ],
+        "left": [
+          35.207332611083984,
+          98.06143951416016
+        ],
+        "right": [
+          34.05836868286133,
+          82.68457794189453
+        ]
+      },
+      "metadata": {
+        "source": "graph_builder",
+        "detector_mode": "clahe+adaptive+contrast+blackhat",
+        "arrow_absorbed": false,
+        "used_skeleton": false,
+        "absorbed_region_ids": [],
+        "dense_reconstruction": false,
+        "primitive_id": "stroke-primitive-stage2-stroke-000",
+        "route_degraded": false
+      }
+    }
+  ]
+}

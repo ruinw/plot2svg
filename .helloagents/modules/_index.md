@@ -1,0 +1,18 @@
+# 模块索引
+
+- [analyze](H:\project\plot2svg\.helloagents\modules\analyze.md)
+- [detect_shapes](H:\project\plot2svg\.helloagents\modules\detect_shapes.md)
+- [detect_structure](H:\project\plot2svg\.helloagents\modules\detect_structure.md)
+- [export_svg](H:\project\plot2svg\.helloagents\modules\export_svg.md)
+- [graph_builder](H:\project\plot2svg\.helloagents\modules\graph_builder.md)
+- [node_detector](H:\project\plot2svg\.helloagents\modules\node_detector.md)
+- [object_svg_exporter](H:\project\plot2svg\.helloagents\modules\object_svg_exporter.md)
+- [pipeline](H:\project\plot2svg\.helloagents\modules\pipeline.md)
+- [region_vectorizer](H:\project\plot2svg\.helloagents\modules\region_vectorizer.md)
+- [scene_graph](H:\project\plot2svg\.helloagents\modules\scene_graph.md)
+- [segment](H:\project\plot2svg\.helloagents\modules\segment.md)
+- [stroke_detector](H:\project\plot2svg\.helloagents\modules\stroke_detector.md)
+- [text_layers](H:\project\plot2svg\.helloagents\modules\text_layers.md)
+- [ocr](H:\project\plot2svg\.helloagents\modules\ocr.md)
+- [vectorize_region](H:\project\plot2svg\.helloagents\modules\vectorize_region.md)
+- [vectorize_stroke](H:\project\plot2svg\.helloagents\modules\vectorize_stroke.md)

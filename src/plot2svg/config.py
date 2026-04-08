@@ -23,6 +23,7 @@ class PipelineConfig:
     enable_edge_model: bool = False
     tile_size: int = 1024
     ocr_max_workers: int = 0
+    enable_shape_detection: bool = True
 
     def __post_init__(self) -> None:
         self.input_path = Path(self.input_path)

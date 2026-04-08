@@ -1,0 +1,41 @@
+[
+  {
+    "component_id": "region-000",
+    "bbox": [
+      14,
+      79,
+      38,
+      103
+    ],
+    "mask_path": "masks/region-000.png",
+    "proposal_type": "region",
+    "confidence": 0.8038194444444444,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "stroke-001",
+    "bbox": [
+      82,
+      22,
+      92,
+      92
+    ],
+    "mask_path": "masks/stroke-001.png",
+    "proposal_type": "stroke",
+    "confidence": 0.9671428571428571,
+    "shape_hint": null
+  },
+  {
+    "component_id": "stroke-002",
+    "bbox": [
+      59,
+      97,
+      80,
+      103
+    ],
+    "mask_path": "masks/stroke-002.png",
+    "proposal_type": "stroke",
+    "confidence": 0.99,
+    "shape_hint": null
+  }
+]

@@ -1,0 +1,14 @@
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='111' height='149' viewBox='0 0 111 149'>
+
+<defs>
+  <marker id='standard-arrow' markerWidth='10' markerHeight='7' refX='9' refY='3.5' orient='auto'>
+    <polygon points='0 0, 10 3.5, 0 7' fill='#555555' />
+  </marker>
+</defs>
+
+<path id='region-object-region-000' class='region' data-node-id='region-000' d='M 18 79 L 18 97 L 30 97 L 31 100 L 37 97 L 37 79 Z' fill='#e0f0f0' stroke='#e0f0f0' fill-opacity='0.550' />
+<polyline id='graph-edge-stroke-primitive-stage2-stroke-000' class='edge' fill='none' stroke='#555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' data-source-id='text-overlay-001' data-target-id='text-overlay-001' data-relation-id='graph-edge-stroke-primitive-stage2-stroke-000' data-relation-type='connector' marker-end='url(#standard-arrow)' points='61.1,109.0 78.4,92.9 67.5,94.0 57.4,92.7 49.2,95.4 37.3,91.2 30.5,90.7 36.0,109.0' />
+<text id='text-overlay-000' class='text' x='26' y='45' font-family='Arial' font-size='12' fill='#000000'>MAF</text>
+<text id='text-overlay-001' class='text' x='36' y='124' font-family='Arial' font-size='11' fill='#000000'>MAF</text>
+<text id='text-overlay-002' class='text' x='4' y='143' font-family='Arial' font-size='11' fill='#000000'>Mutation Files</text>
+</svg>

@@ -1,0 +1,93 @@
+[
+  {
+    "component_id": "region-000",
+    "bbox": [
+      15,
+      8,
+      91,
+      103
+    ],
+    "mask_path": "masks/region-000.png",
+    "proposal_type": "region",
+    "confidence": 0.9092797783933517,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "stroke-001",
+    "bbox": [
+      36,
+      68,
+      48,
+      71
+    ],
+    "mask_path": "masks/stroke-001.png",
+    "proposal_type": "stroke",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "stroke-002",
+    "bbox": [
+      37,
+      90,
+      48,
+      93
+    ],
+    "mask_path": "masks/stroke-002.png",
+    "proposal_type": "stroke",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "stroke-003",
+    "bbox": [
+      38,
+      110,
+      68,
+      122
+    ],
+    "mask_path": "masks/stroke-003.png",
+    "proposal_type": "stroke",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-004",
+    "bbox": [
+      15,
+      8,
+      91,
+      103
+    ],
+    "mask_path": "masks/text_like-004.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-005",
+    "bbox": [
+      38,
+      110,
+      69,
+      123
+    ],
+    "mask_path": "masks/text_like-005.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-006",
+    "bbox": [
+      4,
+      128,
+      103,
+      141
+    ],
+    "mask_path": "masks/text_like-006.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  }
+]

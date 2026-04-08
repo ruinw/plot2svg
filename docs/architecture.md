@@ -217,3 +217,21 @@ proposal 类型：
 - 交互式组件纠错
 - DrawIO/PPTX 等更多目标格式
 - 语义级组件编辑而不是仅几何级编辑
+
+
+## 2026-03-13 Round 17 update
+
+Current pipeline behavior is now explicitly subtraction-based and stage-isolated:
+
+1. OCR extracts overlay text and removes glyphs with contour-level inpaint masks.
+2. Stage 1 detects node-like primitives and complex icons.
+3. Complex icons are downgraded to `RasterObject` and exported as Base64 `<image>`.
+4. Stage 2 extracts strokes from a node/icon-cleaned working image.
+5. Stage 3 vectorizes the remaining large background/container regions.
+6. Final SVG export applies a last-pass blacklist for oversized dark region artifacts.
+
+This means three responsibilities are now separated instead of mixed:
+
+- `ocr.py` is responsible for precise text removal, not geometry cutting.
+- `pipeline.py` is responsible for raster fallback orchestration.
+- `object_svg_exporter.py` is responsible for final artifact suppression when upstream heuristics still leak dark fragments.

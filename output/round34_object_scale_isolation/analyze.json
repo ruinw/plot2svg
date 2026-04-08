@@ -1,0 +1,11 @@
+{
+  "width": 1408,
+  "height": 768,
+  "aspect_ratio": 1.8333333333333333,
+  "color_complexity": 1.0,
+  "edge_density": 0.016098484848484848,
+  "alpha_present": false,
+  "route_type": "flat_graphics",
+  "should_tile": false,
+  "should_super_resolve": false
+}

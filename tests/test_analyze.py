@@ -8,9 +8,9 @@ from plot2svg.analyze import analyze_image
 
 
 class AnalyzeImageTest(unittest.TestCase):
-    def test_analyze_image_routes_signature_sample(self) -> None:
+    def test_analyze_image_routes_small_chart_even_when_filename_contains_signature(self) -> None:
         result = analyze_image(Path("picture/orr_signature.png"))
-        self.assertEqual(result.route_type, "signature_lineart")
+        self.assertEqual(result.route_type, "small_lowres")
 
     def test_analyze_image_routes_wide_sample(self) -> None:
         result = analyze_image(Path("picture/F2.png"))

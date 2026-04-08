@@ -1,0 +1,210 @@
+[
+  {
+    "component_id": "region-000",
+    "bbox": [
+      17,
+      100,
+      183,
+      518
+    ],
+    "mask_path": "masks/region-000.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-001",
+    "bbox": [
+      177,
+      100,
+      700,
+      538
+    ],
+    "mask_path": "masks/region-001.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-002",
+    "bbox": [
+      355,
+      416,
+      676,
+      741
+    ],
+    "mask_path": "masks/region-002.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-003",
+    "bbox": [
+      17,
+      515,
+      303,
+      741
+    ],
+    "mask_path": "masks/region-003.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-004",
+    "bbox": [
+      1108,
+      528,
+      1122,
+      548
+    ],
+    "mask_path": "masks/region-004.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "region-005",
+    "bbox": [
+      1176,
+      553,
+      1190,
+      575
+    ],
+    "mask_path": "masks/region-005.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-006",
+    "bbox": [
+      1176,
+      577,
+      1190,
+      604
+    ],
+    "mask_path": "masks/region-006.png",
+    "proposal_type": "region",
+    "confidence": 0.9814814814814814,
+    "shape_hint": null
+  },
+  {
+    "component_id": "region-007",
+    "bbox": [
+      1108,
+      583,
+      1122,
+      598
+    ],
+    "mask_path": "masks/region-007.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-008",
+    "bbox": [
+      1169,
+      605,
+      1183,
+      619
+    ],
+    "mask_path": "masks/region-008.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "stroke-009",
+    "bbox": [
+      1176,
+      528,
+      1184,
+      549
+    ],
+    "mask_path": "masks/stroke-009.png",
+    "proposal_type": "stroke",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "stroke-010",
+    "bbox": [
+      1108,
+      554,
+      1121,
+      576
+    ],
+    "mask_path": "masks/stroke-010.png",
+    "proposal_type": "stroke",
+    "confidence": 0.99,
+    "shape_hint": "pentagon"
+  },
+  {
+    "component_id": "stroke-011",
+    "bbox": [
+      1108,
+      605,
+      1123,
+      613
+    ],
+    "mask_path": "masks/stroke-011.png",
+    "proposal_type": "stroke",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "stroke-012",
+    "bbox": [
+      1111,
+      620,
+      1123,
+      627
+    ],
+    "mask_path": "masks/stroke-012.png",
+    "proposal_type": "stroke",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "stroke-013",
+    "bbox": [
+      14,
+      745,
+      306,
+      756
+    ],
+    "mask_path": "masks/stroke-013.png",
+    "proposal_type": "stroke",
+    "confidence": 0.7786425902864259,
+    "shape_hint": null
+  },
+  {
+    "component_id": "stroke-014",
+    "bbox": [
+      357,
+      745,
+      679,
+      756
+    ],
+    "mask_path": "masks/stroke-014.png",
+    "proposal_type": "stroke",
+    "confidence": 0.7775268210050819,
+    "shape_hint": null
+  },
+  {
+    "component_id": "region-hough-015",
+    "bbox": [
+      303,
+      367,
+      431,
+      495
+    ],
+    "mask_path": "masks/region-hough-015.png",
+    "proposal_type": "region",
+    "confidence": 0.75,
+    "shape_hint": "circle"
+  }
+]

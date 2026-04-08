@@ -10,6 +10,8 @@ from plot2svg.ocr import (
     _EARLY_EXIT_CONFIDENCE,
     _MIN_PIXEL_STD,
     _read_text_from_bbox,
+    extract_text_overlays,
+    inpaint_text_nodes,
     choose_best_ocr_text,
     merge_text_nodes,
     normalize_ocr_text,
@@ -45,6 +47,14 @@ class OcrTest(unittest.TestCase):
         self.assertEqual(normalize_ocr_text("flament binding"), "filament binding")
         self.assertEqual(normalize_ocr_text("echnology"), "technology")
         self.assertEqual(normalize_ocr_text("Miniaturizatio"), "Miniaturization")
+
+    def test_normalize_ocr_text_adds_spacing_around_delimiters(self) -> None:
+        self.assertEqual(normalize_ocr_text("Model Construction&Training"), "Model Construction & Training")
+        self.assertEqual(normalize_ocr_text("[Clinical +Mutation Data]"), "[Clinical + Mutation Data]")
+        self.assertEqual(normalize_ocr_text("&Preprocessing"), "& Preprocessing")
+
+    def test_normalize_ocr_text_separates_leading_digit_from_long_word(self) -> None:
+        self.assertEqual(normalize_ocr_text("4Prediction&"), "4 Prediction &")
 
     def test_merge_text_nodes_combines_adjacent_boxes_on_same_line(self) -> None:
         graph = SceneGraph(
@@ -143,6 +153,63 @@ class OcrTest(unittest.TestCase):
         updated = populate_text_nodes(image, graph)
         text_node = next(node for node in updated.nodes if node.type == "text")
         self.assertEqual(text_node.text_content, "HELLO")
+
+    def test_populate_text_nodes_supports_scaled_coordinate_space(self) -> None:
+        image = np.full((120, 320, 3), 255, dtype=np.uint8)
+        cv2.putText(image, "HELLO", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 3, cv2.LINE_AA)
+        upscaled = cv2.resize(image, (640, 240), interpolation=cv2.INTER_CUBIC)
+        graph = SceneGraph(
+            width=320,
+            height=120,
+            nodes=[
+                SceneNode(id="background-root", type="background", bbox=[0, 0, 320, 120], z_index=0, vector_mode="region_path", confidence=1.0),
+                SceneNode(id="text-001", type="text", bbox=[10, 10, 250, 90], z_index=1, vector_mode="text_box", confidence=0.9),
+            ],
+        )
+
+        updated = populate_text_nodes(upscaled, graph, coordinate_scale=2.0)
+        text_node = next(node for node in updated.nodes if node.type == "text")
+        self.assertEqual(text_node.text_content, "HELLO")
+
+    def test_extract_text_overlays_returns_scene_nodes(self) -> None:
+        image = np.full((120, 320, 3), 255, dtype=np.uint8)
+
+        with patch('plot2svg.ocr._get_ocr_engine_full') as mock_get:
+            mock_engine = MagicMock()
+            mock_engine.return_value = ([([ [20, 20], [120, 20], [120, 48], [20, 48] ], 'HELLO', 0.92)], None)
+            mock_get.return_value = mock_engine
+            nodes = extract_text_overlays(image)
+
+        self.assertEqual(len(nodes), 1)
+        self.assertEqual(nodes[0].type, 'text')
+        self.assertEqual(nodes[0].text_content, 'HELLO')
+        self.assertEqual(nodes[0].bbox, [20, 20, 120, 48])
+
+    def test_inpaint_text_nodes_returns_mask_and_cleans_pixels(self) -> None:
+        image = np.full((80, 180, 3), 255, dtype=np.uint8)
+        cv2.putText(image, 'TEST', (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+        text_nodes = [
+            SceneNode(id='text-001', type='text', bbox=[12, 18, 120, 58], z_index=1, vector_mode='text_box', confidence=0.9, text_content='TEST')
+        ]
+
+        cleaned, mask = inpaint_text_nodes(image, text_nodes)
+
+        self.assertEqual(mask.shape[:2], image.shape[:2])
+        self.assertGreater(np.count_nonzero(mask), 0)
+        self.assertGreater(float(np.mean(cleaned[mask > 0])), float(np.mean(image[mask > 0])))
+
+    def test_inpaint_text_nodes_preserves_neighboring_colored_region_outside_glyph_mask(self) -> None:
+        image = np.full((80, 180, 3), 255, dtype=np.uint8)
+        image[18:34, 128:144] = (0, 0, 255)
+        cv2.putText(image, 'TEST', (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+        text_nodes = [
+            SceneNode(id='text-001', type='text', bbox=[12, 18, 120, 58], z_index=1, vector_mode='text_box', confidence=0.9, text_content='TEST')
+        ]
+
+        cleaned, mask = inpaint_text_nodes(image, text_nodes)
+
+        self.assertEqual(mask[26, 136], 0)
+        self.assertTrue(np.array_equal(cleaned[26, 136], np.array([0, 0, 255], dtype=np.uint8)))
 
     def test_pixel_variance_filter_skips_uniform_crop(self) -> None:
         """Optimization 3: uniform image (all white) should return None."""

@@ -9,6 +9,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from .image_io import read_image, write_image
+
 from .analyze import AnalysisResult
 from .config import PipelineConfig
 from .gpu import clahe_apply, filter2d, resize
@@ -63,7 +65,7 @@ def enhance_image(path: Path, analysis: AnalysisResult, cfg: PipelineConfig) -> 
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
     plan = EnhancementPlan.from_route(analysis.route_type, cfg.enhancement_mode)
     input_path = Path(path)
-    image = cv2.imread(str(input_path), cv2.IMREAD_UNCHANGED)
+    image = read_image(input_path, cv2.IMREAD_UNCHANGED)
     if image is None:
         raise ValueError(f"Failed to read image: {input_path}")
 
@@ -81,7 +83,7 @@ def enhance_image(path: Path, analysis: AnalysisResult, cfg: PipelineConfig) -> 
         notes.append(f"upsampled_{int(scale_factor)}x")
 
     enhanced_path = cfg.output_dir / "enhanced.png"
-    cv2.imwrite(str(enhanced_path), working)
+    write_image(enhanced_path, working)
 
     result = EnhancementResult(
         image_path=enhanced_path,

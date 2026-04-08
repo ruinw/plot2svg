@@ -1,0 +1,2004 @@
+[
+  {
+    "component_id": "region-000",
+    "bbox": [
+      439,
+      36,
+      477,
+      58
+    ],
+    "mask_path": "masks/region-000.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-001",
+    "bbox": [
+      475,
+      36,
+      512,
+      53
+    ],
+    "mask_path": "masks/region-001.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-002",
+    "bbox": [
+      418,
+      63,
+      458,
+      88
+    ],
+    "mask_path": "masks/region-002.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-003",
+    "bbox": [
+      562,
+      65,
+      585,
+      87
+    ],
+    "mask_path": "masks/region-003.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-004",
+    "bbox": [
+      859,
+      65,
+      890,
+      87
+    ],
+    "mask_path": "masks/region-004.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-005",
+    "bbox": [
+      921,
+      65,
+      974,
+      92
+    ],
+    "mask_path": "masks/region-005.png",
+    "proposal_type": "region",
+    "confidence": 0.9730957372466806,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-006",
+    "bbox": [
+      582,
+      70,
+      612,
+      87
+    ],
+    "mask_path": "masks/region-006.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-007",
+    "bbox": [
+      1180,
+      70,
+      1215,
+      92
+    ],
+    "mask_path": "masks/region-007.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-008",
+    "bbox": [
+      1215,
+      70,
+      1246,
+      87
+    ],
+    "mask_path": "masks/region-008.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-009",
+    "bbox": [
+      793,
+      71,
+      816,
+      87
+    ],
+    "mask_path": "masks/region-009.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-010",
+    "bbox": [
+      817,
+      71,
+      830,
+      87
+    ],
+    "mask_path": "masks/region-010.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-011",
+    "bbox": [
+      830,
+      71,
+      848,
+      92
+    ],
+    "mask_path": "masks/region-011.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-012",
+    "bbox": [
+      789,
+      144,
+      804,
+      160
+    ],
+    "mask_path": "masks/region-012.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-013",
+    "bbox": [
+      596,
+      148,
+      620,
+      164
+    ],
+    "mask_path": "masks/region-013.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-014",
+    "bbox": [
+      733,
+      149,
+      776,
+      179
+    ],
+    "mask_path": "masks/region-014.png",
+    "proposal_type": "region",
+    "confidence": 0.8604651162790697,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-015",
+    "bbox": [
+      1134,
+      152,
+      1158,
+      181
+    ],
+    "mask_path": "masks/region-015.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-016",
+    "bbox": [
+      395,
+      156,
+      479,
+      235
+    ],
+    "mask_path": "masks/region-016.png",
+    "proposal_type": "region",
+    "confidence": 0.8955696202531646,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-017",
+    "bbox": [
+      826,
+      156,
+      847,
+      175
+    ],
+    "mask_path": "masks/region-017.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-018",
+    "bbox": [
+      769,
+      170,
+      788,
+      196
+    ],
+    "mask_path": "masks/region-018.png",
+    "proposal_type": "region",
+    "confidence": 0.9716599190283401,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-019",
+    "bbox": [
+      803,
+      173,
+      827,
+      196
+    ],
+    "mask_path": "masks/region-019.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-020",
+    "bbox": [
+      38,
+      174,
+      130,
+      287
+    ],
+    "mask_path": "masks/region-020.png",
+    "proposal_type": "region",
+    "confidence": 0.9047710657945364,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-021",
+    "bbox": [
+      1134,
+      181,
+      1155,
+      217
+    ],
+    "mask_path": "masks/region-021.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-022",
+    "bbox": [
+      853,
+      182,
+      869,
+      196
+    ],
+    "mask_path": "masks/region-022.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-023",
+    "bbox": [
+      737,
+      187,
+      752,
+      201
+    ],
+    "mask_path": "masks/region-023.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-024",
+    "bbox": [
+      1161,
+      187,
+      1183,
+      217
+    ],
+    "mask_path": "masks/region-024.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-025",
+    "bbox": [
+      177,
+      204,
+      231,
+      266
+    ],
+    "mask_path": "masks/region-025.png",
+    "proposal_type": "region",
+    "confidence": 0.8473715651135005,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-026",
+    "bbox": [
+      244,
+      205,
+      269,
+      217
+    ],
+    "mask_path": "masks/region-026.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "region-027",
+    "bbox": [
+      753,
+      207,
+      771,
+      223
+    ],
+    "mask_path": "masks/region-027.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-028",
+    "bbox": [
+      830,
+      208,
+      844,
+      222
+    ],
+    "mask_path": "masks/region-028.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-029",
+    "bbox": [
+      263,
+      210,
+      274,
+      228
+    ],
+    "mask_path": "masks/region-029.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "region-030",
+    "bbox": [
+      242,
+      215,
+      273,
+      256
+    ],
+    "mask_path": "masks/region-030.png",
+    "proposal_type": "region",
+    "confidence": 0.9634146341463414,
+    "shape_hint": null
+  },
+  {
+    "component_id": "region-031",
+    "bbox": [
+      793,
+      221,
+      809,
+      236
+    ],
+    "mask_path": "masks/region-031.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-032",
+    "bbox": [
+      433,
+      288,
+      452,
+      359
+    ],
+    "mask_path": "masks/region-032.png",
+    "proposal_type": "region",
+    "confidence": 0.9625648628613788,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-033",
+    "bbox": [
+      162,
+      317,
+      192,
+      335
+    ],
+    "mask_path": "masks/region-033.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-034",
+    "bbox": [
+      392,
+      335,
+      407,
+      359
+    ],
+    "mask_path": "masks/region-034.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-035",
+    "bbox": [
+      827,
+      343,
+      848,
+      376
+    ],
+    "mask_path": "masks/region-035.png",
+    "proposal_type": "region",
+    "confidence": 0.9877344877344878,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-036",
+    "bbox": [
+      920,
+      343,
+      936,
+      359
+    ],
+    "mask_path": "masks/region-036.png",
+    "proposal_type": "region",
+    "confidence": 0.8359375,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-037",
+    "bbox": [
+      951,
+      347,
+      979,
+      372
+    ],
+    "mask_path": "masks/region-037.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-038",
+    "bbox": [
+      889,
+      356,
+      907,
+      373
+    ],
+    "mask_path": "masks/region-038.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-039",
+    "bbox": [
+      618,
+      395,
+      636,
+      411
+    ],
+    "mask_path": "masks/region-039.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-040",
+    "bbox": [
+      851,
+      409,
+      867,
+      423
+    ],
+    "mask_path": "masks/region-040.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-041",
+    "bbox": [
+      433,
+      415,
+      449,
+      429
+    ],
+    "mask_path": "masks/region-041.png",
+    "proposal_type": "region",
+    "confidence": 0.9508928571428572,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-042",
+    "bbox": [
+      919,
+      421,
+      936,
+      438
+    ],
+    "mask_path": "masks/region-042.png",
+    "proposal_type": "region",
+    "confidence": 0.953287197231834,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-043",
+    "bbox": [
+      951,
+      422,
+      979,
+      449
+    ],
+    "mask_path": "masks/region-043.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-044",
+    "bbox": [
+      794,
+      424,
+      882,
+      458
+    ],
+    "mask_path": "masks/region-044.png",
+    "proposal_type": "region",
+    "confidence": 0.7977941176470589,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-045",
+    "bbox": [
+      763,
+      448,
+      889,
+      480
+    ],
+    "mask_path": "masks/region-045.png",
+    "proposal_type": "region",
+    "confidence": 0.7991071428571428,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-046",
+    "bbox": [
+      377,
+      451,
+      393,
+      470
+    ],
+    "mask_path": "masks/region-046.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-047",
+    "bbox": [
+      480,
+      453,
+      506,
+      478
+    ],
+    "mask_path": "masks/region-047.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-048",
+    "bbox": [
+      181,
+      463,
+      265,
+      523
+    ],
+    "mask_path": "masks/region-048.png",
+    "proposal_type": "region",
+    "confidence": 0.9103174603174603,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-049",
+    "bbox": [
+      207,
+      464,
+      276,
+      542
+    ],
+    "mask_path": "masks/region-049.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-050",
+    "bbox": [
+      589,
+      469,
+      608,
+      552
+    ],
+    "mask_path": "masks/region-050.png",
+    "proposal_type": "region",
+    "confidence": 0.9280279010779962,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-051",
+    "bbox": [
+      1306,
+      473,
+      1325,
+      491
+    ],
+    "mask_path": "masks/region-051.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-052",
+    "bbox": [
+      1331,
+      473,
+      1360,
+      488
+    ],
+    "mask_path": "masks/region-052.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-053",
+    "bbox": [
+      387,
+      503,
+      412,
+      519
+    ],
+    "mask_path": "masks/region-053.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-054",
+    "bbox": [
+      832,
+      508,
+      851,
+      553
+    ],
+    "mask_path": "masks/region-054.png",
+    "proposal_type": "region",
+    "confidence": 0.9538011695906432,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-055",
+    "bbox": [
+      1107,
+      526,
+      1130,
+      628
+    ],
+    "mask_path": "masks/region-055.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-056",
+    "bbox": [
+      1171,
+      527,
+      1190,
+      547
+    ],
+    "mask_path": "masks/region-056.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-057",
+    "bbox": [
+      1169,
+      543,
+      1191,
+      582
+    ],
+    "mask_path": "masks/region-057.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-058",
+    "bbox": [
+      774,
+      556,
+      874,
+      586
+    ],
+    "mask_path": "masks/region-058.png",
+    "proposal_type": "region",
+    "confidence": 0.9563333333333333,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-059",
+    "bbox": [
+      589,
+      570,
+      607,
+      587
+    ],
+    "mask_path": "masks/region-059.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-060",
+    "bbox": [
+      1176,
+      579,
+      1197,
+      605
+    ],
+    "mask_path": "masks/region-060.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-061",
+    "bbox": [
+      630,
+      582,
+      648,
+      606
+    ],
+    "mask_path": "masks/region-061.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-062",
+    "bbox": [
+      550,
+      586,
+      571,
+      608
+    ],
+    "mask_path": "masks/region-062.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-063",
+    "bbox": [
+      593,
+      599,
+      612,
+      615
+    ],
+    "mask_path": "masks/region-063.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-064",
+    "bbox": [
+      1284,
+      602,
+      1316,
+      622
+    ],
+    "mask_path": "masks/region-064.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "region-065",
+    "bbox": [
+      1162,
+      605,
+      1192,
+      627
+    ],
+    "mask_path": "masks/region-065.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-066",
+    "bbox": [
+      72,
+      610,
+      96,
+      624
+    ],
+    "mask_path": "masks/region-066.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-067",
+    "bbox": [
+      544,
+      627,
+      562,
+      648
+    ],
+    "mask_path": "masks/region-067.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-068",
+    "bbox": [
+      632,
+      635,
+      652,
+      652
+    ],
+    "mask_path": "masks/region-068.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-069",
+    "bbox": [
+      384,
+      636,
+      407,
+      651
+    ],
+    "mask_path": "masks/region-069.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-070",
+    "bbox": [
+      595,
+      658,
+      613,
+      675
+    ],
+    "mask_path": "masks/region-070.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "region-071",
+    "bbox": [
+      1276,
+      696,
+      1303,
+      710
+    ],
+    "mask_path": "masks/region-071.png",
+    "proposal_type": "region",
+    "confidence": 0.99,
+    "shape_hint": "raster_candidate"
+  },
+  {
+    "component_id": "stroke-072",
+    "bbox": [
+      12,
+      14,
+      1395,
+      757
+    ],
+    "mask_path": "masks/stroke-072.png",
+    "proposal_type": "stroke",
+    "confidence": 0.99,
+    "shape_hint": "pentagon"
+  },
+  {
+    "component_id": "text_like-074",
+    "bbox": [
+      591,
+      30,
+      641,
+      54
+    ],
+    "mask_path": "masks/text_like-074.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-076",
+    "bbox": [
+      1286,
+      30,
+      1335,
+      54
+    ],
+    "mask_path": "masks/text_like-076.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-079",
+    "bbox": [
+      388,
+      134,
+      422,
+      148
+    ],
+    "mask_path": "masks/text_like-079.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-080",
+    "bbox": [
+      428,
+      134,
+      487,
+      152
+    ],
+    "mask_path": "masks/text_like-080.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-081",
+    "bbox": [
+      824,
+      142,
+      871,
+      153
+    ],
+    "mask_path": "masks/text_like-081.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-083",
+    "bbox": [
+      1288,
+      174,
+      1331,
+      193
+    ],
+    "mask_path": "masks/text_like-083.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-084",
+    "bbox": [
+      577,
+      179,
+      639,
+      196
+    ],
+    "mask_path": "masks/text_like-084.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-087",
+    "bbox": [
+      52,
+      201,
+      92,
+      216
+    ],
+    "mask_path": "masks/text_like-087.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-088",
+    "bbox": [
+      577,
+      210,
+      639,
+      227
+    ],
+    "mask_path": "masks/text_like-088.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-089",
+    "bbox": [
+      821,
+      226,
+      872,
+      238
+    ],
+    "mask_path": "masks/text_like-089.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-090",
+    "bbox": [
+      894,
+      231,
+      932,
+      244
+    ],
+    "mask_path": "masks/text_like-090.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-091",
+    "bbox": [
+      937,
+      231,
+      1020,
+      247
+    ],
+    "mask_path": "masks/text_like-091.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-092",
+    "bbox": [
+      1175,
+      234,
+      1239,
+      250
+    ],
+    "mask_path": "masks/text_like-092.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-093",
+    "bbox": [
+      1245,
+      235,
+      1297,
+      250
+    ],
+    "mask_path": "masks/text_like-093.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-094",
+    "bbox": [
+      375,
+      243,
+      425,
+      261
+    ],
+    "mask_path": "masks/text_like-094.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-096",
+    "bbox": [
+      430,
+      244,
+      500,
+      258
+    ],
+    "mask_path": "masks/text_like-096.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-099",
+    "bbox": [
+      930,
+      250,
+      984,
+      263
+    ],
+    "mask_path": "masks/text_like-099.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-100",
+    "bbox": [
+      394,
+      264,
+      443,
+      279
+    ],
+    "mask_path": "masks/text_like-100.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-101",
+    "bbox": [
+      448,
+      264,
+      481,
+      279
+    ],
+    "mask_path": "masks/text_like-101.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-102",
+    "bbox": [
+      518,
+      264,
+      572,
+      279
+    ],
+    "mask_path": "masks/text_like-102.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-104",
+    "bbox": [
+      887,
+      269,
+      945,
+      285
+    ],
+    "mask_path": "masks/text_like-104.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-105",
+    "bbox": [
+      945,
+      269,
+      1027,
+      284
+    ],
+    "mask_path": "masks/text_like-105.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-106",
+    "bbox": [
+      728,
+      270,
+      773,
+      287
+    ],
+    "mask_path": "masks/text_like-106.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-107",
+    "bbox": [
+      778,
+      271,
+      877,
+      284
+    ],
+    "mask_path": "masks/text_like-107.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-108",
+    "bbox": [
+      65,
+      296,
+      103,
+      311
+    ],
+    "mask_path": "masks/text_like-108.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-109",
+    "bbox": [
+      176,
+      296,
+      237,
+      311
+    ],
+    "mask_path": "masks/text_like-109.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-110",
+    "bbox": [
+      243,
+      296,
+      281,
+      311
+    ],
+    "mask_path": "masks/text_like-110.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-111",
+    "bbox": [
+      574,
+      306,
+      650,
+      323
+    ],
+    "mask_path": "masks/text_like-111.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-112",
+    "bbox": [
+      537,
+      307,
+      570,
+      322
+    ],
+    "mask_path": "masks/text_like-112.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-113",
+    "bbox": [
+      105,
+      317,
+      143,
+      333
+    ],
+    "mask_path": "masks/text_like-113.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-114",
+    "bbox": [
+      25,
+      318,
+      99,
+      333
+    ],
+    "mask_path": "masks/text_like-114.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-115",
+    "bbox": [
+      197,
+      318,
+      238,
+      334
+    ],
+    "mask_path": "masks/text_like-115.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-116",
+    "bbox": [
+      243,
+      319,
+      294,
+      335
+    ],
+    "mask_path": "masks/text_like-116.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-118",
+    "bbox": [
+      362,
+      363,
+      422,
+      375
+    ],
+    "mask_path": "masks/text_like-118.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-119",
+    "bbox": [
+      469,
+      363,
+      517,
+      376
+    ],
+    "mask_path": "masks/text_like-119.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-120",
+    "bbox": [
+      569,
+      395,
+      613,
+      411
+    ],
+    "mask_path": "masks/text_like-120.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-123",
+    "bbox": [
+      585,
+      440,
+      621,
+      457
+    ],
+    "mask_path": "masks/text_like-123.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-124",
+    "bbox": [
+      1110,
+      451,
+      1146,
+      466
+    ],
+    "mask_path": "masks/text_like-124.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-125",
+    "bbox": [
+      1251,
+      452,
+      1315,
+      466
+    ],
+    "mask_path": "masks/text_like-125.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-126",
+    "bbox": [
+      1152,
+      454,
+      1207,
+      466
+    ],
+    "mask_path": "masks/text_like-126.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-127",
+    "bbox": [
+      1320,
+      454,
+      1375,
+      466
+    ],
+    "mask_path": "masks/text_like-127.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-128",
+    "bbox": [
+      908,
+      458,
+      976,
+      471
+    ],
+    "mask_path": "masks/text_like-128.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-129",
+    "bbox": [
+      981,
+      461,
+      1021,
+      471
+    ],
+    "mask_path": "masks/text_like-129.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-131",
+    "bbox": [
+      1266,
+      473,
+      1300,
+      490
+    ],
+    "mask_path": "masks/text_like-131.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-132",
+    "bbox": [
+      906,
+      478,
+      970,
+      493
+    ],
+    "mask_path": "masks/text_like-132.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-133",
+    "bbox": [
+      974,
+      478,
+      1024,
+      490
+    ],
+    "mask_path": "masks/text_like-133.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-134",
+    "bbox": [
+      450,
+      483,
+      486,
+      497
+    ],
+    "mask_path": "masks/text_like-134.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-135",
+    "bbox": [
+      487,
+      483,
+      537,
+      498
+    ],
+    "mask_path": "masks/text_like-135.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-136",
+    "bbox": [
+      762,
+      486,
+      794,
+      501
+    ],
+    "mask_path": "masks/text_like-136.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-137",
+    "bbox": [
+      852,
+      487,
+      894,
+      501
+    ],
+    "mask_path": "masks/text_like-137.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-138",
+    "bbox": [
+      799,
+      488,
+      846,
+      504
+    ],
+    "mask_path": "masks/text_like-138.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-139",
+    "bbox": [
+      418,
+      504,
+      497,
+      519
+    ],
+    "mask_path": "masks/text_like-139.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-141",
+    "bbox": [
+      1284,
+      532,
+      1368,
+      541
+    ],
+    "mask_path": "masks/text_like-141.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-142",
+    "bbox": [
+      1284,
+      544,
+      1346,
+      564
+    ],
+    "mask_path": "masks/text_like-142.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-143",
+    "bbox": [
+      899,
+      551,
+      970,
+      569
+    ],
+    "mask_path": "masks/text_like-143.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-144",
+    "bbox": [
+      51,
+      566,
+      117,
+      581
+    ],
+    "mask_path": "masks/text_like-144.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-146",
+    "bbox": [
+      1284,
+      567,
+      1331,
+      576
+    ],
+    "mask_path": "masks/text_like-146.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-147",
+    "bbox": [
+      881,
+      573,
+      942,
+      591
+    ],
+    "mask_path": "masks/text_like-147.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-148",
+    "bbox": [
+      948,
+      573,
+      988,
+      591
+    ],
+    "mask_path": "masks/text_like-148.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-149",
+    "bbox": [
+      1284,
+      579,
+      1327,
+      587
+    ],
+    "mask_path": "masks/text_like-149.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-150",
+    "bbox": [
+      36,
+      587,
+      79,
+      603
+    ],
+    "mask_path": "masks/text_like-150.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-151",
+    "bbox": [
+      85,
+      587,
+      131,
+      602
+    ],
+    "mask_path": "masks/text_like-151.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-152",
+    "bbox": [
+      210,
+      588,
+      247,
+      602
+    ],
+    "mask_path": "masks/text_like-152.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-153",
+    "bbox": [
+      1284,
+      590,
+      1321,
+      599
+    ],
+    "mask_path": "masks/text_like-153.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": "pentagon"
+  },
+  {
+    "component_id": "text_like-155",
+    "bbox": [
+      194,
+      609,
+      248,
+      627
+    ],
+    "mask_path": "masks/text_like-155.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-156",
+    "bbox": [
+      407,
+      615,
+      491,
+      630
+    ],
+    "mask_path": "masks/text_like-156.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-159",
+    "bbox": [
+      413,
+      637,
+      458,
+      654
+    ],
+    "mask_path": "masks/text_like-159.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-160",
+    "bbox": [
+      463,
+      640,
+      514,
+      655
+    ],
+    "mask_path": "masks/text_like-160.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-161",
+    "bbox": [
+      766,
+      650,
+      832,
+      666
+    ],
+    "mask_path": "masks/text_like-161.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-162",
+    "bbox": [
+      837,
+      650,
+      869,
+      666
+    ],
+    "mask_path": "masks/text_like-162.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-163",
+    "bbox": [
+      875,
+      651,
+      916,
+      666
+    ],
+    "mask_path": "masks/text_like-163.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-164",
+    "bbox": [
+      1089,
+      652,
+      1165,
+      667
+    ],
+    "mask_path": "masks/text_like-164.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-165",
+    "bbox": [
+      1252,
+      652,
+      1299,
+      667
+    ],
+    "mask_path": "masks/text_like-165.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-166",
+    "bbox": [
+      1171,
+      653,
+      1226,
+      671
+    ],
+    "mask_path": "masks/text_like-166.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-167",
+    "bbox": [
+      1305,
+      653,
+      1375,
+      670
+    ],
+    "mask_path": "masks/text_like-167.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-169",
+    "bbox": [
+      1144,
+      674,
+      1217,
+      691
+    ],
+    "mask_path": "masks/text_like-169.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-171",
+    "bbox": [
+      1098,
+      677,
+      1139,
+      692
+    ],
+    "mask_path": "masks/text_like-171.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-172",
+    "bbox": [
+      791,
+      694,
+      848,
+      709
+    ],
+    "mask_path": "masks/text_like-172.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "text_like-173",
+    "bbox": [
+      853,
+      695,
+      891,
+      709
+    ],
+    "mask_path": "masks/text_like-173.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": "pentagon"
+  },
+  {
+    "component_id": "text_like-174",
+    "bbox": [
+      1308,
+      696,
+      1351,
+      710
+    ],
+    "mask_path": "masks/text_like-174.png",
+    "proposal_type": "text_like",
+    "confidence": 0.99,
+    "shape_hint": null
+  },
+  {
+    "component_id": "region-hough-153",
+    "bbox": [
+      423,
+      137,
+      491,
+      205
+    ],
+    "mask_path": "masks/region-hough-153.png",
+    "proposal_type": "region",
+    "confidence": 0.75,
+    "shape_hint": "circle"
+  }
+]
