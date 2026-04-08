@@ -10,6 +10,17 @@ import shutil
 import cv2
 import numpy as np
 
+from .color_utils import (
+    _bgr_to_hex,
+    _hex_to_bgr,
+    _is_light_container_color,
+    _is_light_hex,
+    _is_near_black,
+    _is_near_white,
+    _sample_arrow_fill_color,
+    _sample_panel_border_color,
+    _sample_panel_fill,
+)
 from .image_io import read_image, write_image
 from .inpaint import (
     _bbox_mask,
@@ -964,23 +975,6 @@ def _estimate_visible_panel_bbox(source_image: np.ndarray, node: SceneNode) -> l
     return [x1 + int(rx), y1 + int(ry), x1 + int(rx + width), y1 + int(ry + height)]
 
 
-def _sample_panel_border_color(source_image: np.ndarray, bbox: list[int]) -> tuple[int, int, int] | None:
-    x1, y1, x2, y2 = _clamp_bbox(bbox, source_image.shape[1], source_image.shape[0])
-    border_mask = np.zeros(source_image.shape[:2], dtype=np.uint8)
-    cv2.rectangle(border_mask, (x1, y1), (x2 - 1, y2 - 1), 255, 8)
-    pixels = source_image[border_mask > 0]
-    if pixels.size == 0:
-        return None
-    hsv_pixels = cv2.cvtColor(pixels.reshape(-1, 1, 3), cv2.COLOR_BGR2HSV).reshape(-1, 3)
-    saturated = pixels[(hsv_pixels[:, 1] > 35) & (pixels.max(axis=1) < 240)]
-    if saturated.size == 0:
-        return None
-    quantized = np.clip(((saturated.astype(np.int32) + 8) // 16) * 16, 0, 255)
-    colors, counts = np.unique(quantized, axis=0, return_counts=True)
-    dominant = colors[int(np.argmax(counts))]
-    return int(dominant[0]), int(dominant[1]), int(dominant[2])
-
-
 def _collect_boundary_arrow_boxes(
     crop_mask: np.ndarray,
     boundary: int,
@@ -1061,23 +1055,6 @@ def _select_boundary_arrow_boxes(boxes: list[list[int]], boundary: int) -> list[
     return selected
 
 
-def _sample_arrow_fill_color(image: np.ndarray, bbox: list[int], fallback_color: tuple[int, int, int]) -> str:
-    x1, y1, x2, y2 = _clamp_bbox(bbox, image.shape[1], image.shape[0])
-    crop = image[y1:y2, x1:x2]
-    if crop.size == 0:
-        return _bgr_to_hex(fallback_color)
-    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-    mask = (hsv[:, :, 1] > 35) & (gray < 220)
-    if not np.any(mask):
-        return _bgr_to_hex(fallback_color)
-    pixels = crop[mask].reshape(-1, 3)
-    quantized = ((pixels.astype(np.int32) + 8) // 16) * 16
-    colors, counts = np.unique(quantized, axis=0, return_counts=True)
-    dominant = colors[int(np.argmax(counts))]
-    return _bgr_to_hex((int(dominant[0]), int(dominant[1]), int(dominant[2])))
-
-
 def _synthesize_right_arrow_path(bbox: list[int], next_panel_left: int) -> tuple[list[int], str]:
     x1, y1, x2, y2 = bbox
     height = max(y2 - y1, 1)
@@ -1100,11 +1077,6 @@ def _synthesize_right_arrow_path(bbox: list[int], next_panel_left: int) -> tuple
     return [x1, y1, tip_x, y2], path
 
 
-def _bgr_to_hex(color: tuple[int, int, int]) -> str:
-    b, g, r = color
-    return f'#{r:02x}{g:02x}{b:02x}'
-
-
 def _cluster_text_columns(text_nodes: list[SceneNode], width: int) -> list[tuple[int, int]]:
     intervals = sorted(
         [
@@ -1125,49 +1097,6 @@ def _cluster_text_columns(text_nodes: list[SceneNode], width: int) -> list[tuple
         else:
             clusters[-1][1] = max(clusters[-1][1], x2)
     return [(x1, x2) for x1, x2 in clusters if (x2 - x1) >= max(60, int(width * 0.08))]
-
-
-def _sample_panel_fill(image: np.ndarray, bbox: list[int]) -> str | None:
-    x1, y1, x2, y2 = _clamp_bbox(bbox, image.shape[1], image.shape[0])
-    crop = image[y1:y2, x1:x2]
-    if crop.size == 0:
-        return None
-    hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
-    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-    mask = (gray < 245) | (hsv[:, :, 1] > 12)
-    if not np.any(mask):
-        return None
-    pixels = crop[mask].reshape(-1, 3)
-    quantized = ((pixels.astype(np.int32) + 8) // 16) * 16
-    colors, counts = np.unique(quantized, axis=0, return_counts=True)
-    dominant = colors[int(np.argmax(counts))]
-    b, g, r = [int(np.clip(channel, 0, 255)) for channel in dominant]
-    return f'#{r:02x}{g:02x}{b:02x}'
-
-
-
-def _hex_to_bgr(color: str | None) -> tuple[int, int, int] | None:
-    if color is None or not color.startswith('#') or len(color) != 7:
-        return None
-    try:
-        r = int(color[1:3], 16)
-        g = int(color[3:5], 16)
-        b = int(color[5:7], 16)
-    except ValueError:
-        return None
-    return b, g, r
-
-
-def _is_near_white(color: str | None) -> bool:
-    if color is None or not color.startswith('#') or len(color) != 7:
-        return False
-    try:
-        r = int(color[1:3], 16)
-        g = int(color[3:5], 16)
-        b = int(color[5:7], 16)
-    except ValueError:
-        return False
-    return min(r, g, b) >= 236
 
 
 def _filter_node_objects(scene_graph: SceneGraph, node_objects) -> list:
@@ -1809,30 +1738,6 @@ def _is_lightweight_text_container(node: SceneNode | None, region_obj: RegionObj
 
 
 
-def _is_light_container_color(fill: str, stroke: str) -> bool:
-    if _is_near_black(fill) or _is_near_black(stroke):
-        return False
-    return _is_light_hex(fill) or _is_light_hex(stroke)
-
-
-
-def _is_light_hex(color: str | None) -> bool:
-    if color is None:
-        return False
-    lowered = color.lower()
-    if lowered in {'', 'none'}:
-        return False
-    if not lowered.startswith('#') or len(lowered) != 7:
-        return lowered in {'white', '#ffffff'}
-    try:
-        r = int(lowered[1:3], 16)
-        g = int(lowered[3:5], 16)
-        b = int(lowered[5:7], 16)
-    except ValueError:
-        return False
-    return min(r, g, b) >= 140 or (r + g + b) >= 560
-
-
 def _matches_text_bbox(region_bbox: list[int], text_nodes: list[SceneNode]) -> bool:
     region_area = max((region_bbox[2] - region_bbox[0]) * (region_bbox[3] - region_bbox[1]), 1)
     for text_node in text_nodes:
@@ -1852,23 +1757,6 @@ def _looks_like_large_black_artifact(node: SceneNode, width: int, height: int) -
     area = max(x2 - x1, 1) * max(y2 - y1, 1)
     canvas_area = max(width * height, 1)
     return area >= canvas_area * 0.02
-
-
-def _is_near_black(color: str | None) -> bool:
-    if color is None:
-        return False
-    lowered = color.lower()
-    if lowered in {'#000000', 'black'}:
-        return True
-    if not lowered.startswith('#') or len(lowered) != 7:
-        return False
-    try:
-        r = int(lowered[1:3], 16)
-        g = int(lowered[3:5], 16)
-        b = int(lowered[5:7], 16)
-    except ValueError:
-        return False
-    return max(r, g, b) <= 24
 
 
 def _expand_bbox(bbox: list[int], width: int, height: int, margin: int) -> tuple[int, int, int, int]:

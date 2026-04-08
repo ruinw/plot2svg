@@ -6,6 +6,7 @@ from html import escape
 import math
 import re
 
+from .color_utils import _is_dark_color, _is_light_container_color, _is_light_hex, _is_pure_black_region_fill
 from .scene_graph import GraphEdge, IconObject, NodeObject, RasterObject, RegionObject, SceneGraph, SceneNode
 from .svg_templates import SVG_TEMPLATES, extract_template_name, infer_template_from_text_context, render_svg_template
 
@@ -545,13 +546,6 @@ def _is_large_dark_region(
 
 
 
-def _is_pure_black_region_fill(color: str | None) -> bool:
-    if color is None:
-        return False
-    lowered = color.lower()
-    return lowered in {'#000000', 'black'}
-
-
 def _fragment_has_pure_black_fill(fragment: str) -> bool:
     lowered = fragment.lower()
     return (
@@ -560,24 +554,6 @@ def _fragment_has_pure_black_fill(fragment: str) -> bool:
         or "fill='black'" in lowered
         or 'fill="black"' in lowered
     )
-
-
-def _is_dark_color(color: str) -> bool:
-    if color in {'', 'none'}:
-        return False
-    if color in {'#000000', 'black'}:
-        return True
-    if not color.startswith('#') or len(color) != 7:
-        return False
-    try:
-        r = int(color[1:3], 16)
-        g = int(color[3:5], 16)
-        b = int(color[5:7], 16)
-    except ValueError:
-        return False
-    return max(r, g, b) <= 32
-
-
 def _should_prune_raster_object(raster_obj: RasterObject) -> bool:
     metadata = raster_obj.metadata or {}
     if metadata.get('shape_hint') != 'raster_candidate':
@@ -811,32 +787,6 @@ def _is_lightweight_text_container(node: SceneNode | None, region_obj: RegionObj
     stroke = (region_obj.stroke if region_obj is not None else node.stroke) or ''
     return _is_light_container_color(fill, stroke)
 
-
-
-def _is_light_container_color(fill: str, stroke: str) -> bool:
-    if _is_dark_color(fill) or _is_dark_color(stroke) or _is_pure_black_region_fill(fill) or _is_pure_black_region_fill(stroke):
-        return False
-    return _is_light_hex(fill) or _is_light_hex(stroke)
-
-
-
-def _is_light_hex(color: str | None) -> bool:
-    if color is None:
-        return False
-    lowered = color.lower()
-    if lowered in {'', 'none'}:
-        return False
-    if lowered in {'white', '#ffffff', '#fefefe', '#fcfcfc'}:
-        return True
-    if not lowered.startswith('#') or len(lowered) != 7:
-        return False
-    try:
-        r = int(lowered[1:3], 16)
-        g = int(lowered[3:5], 16)
-        b = int(lowered[5:7], 16)
-    except ValueError:
-        return False
-    return min(r, g, b) >= 140 or (r + g + b) >= 560
 
 
 def _text_overlap_score(left: list[int], right: list[int]) -> float:
