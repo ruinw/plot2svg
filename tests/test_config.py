@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from plot2svg.config import PipelineConfig
+from plot2svg.config import PipelineConfig, ThresholdConfig
 
 
 class PipelineConfigTest(unittest.TestCase):
@@ -27,6 +27,12 @@ class PipelineConfigTest(unittest.TestCase):
         self.assertLess(speed.proposal_max_side(), quality.proposal_max_side())
         self.assertGreater(speed.text_skip_min_width(), quality.text_skip_min_width())
         self.assertLess(speed.ocr_variant_count(), quality.ocr_variant_count())
+
+    def test_pipeline_config_exposes_threshold_config(self) -> None:
+        config = PipelineConfig(input_path=Path("picture/F2.png"), output_dir=Path("outputs/F2"))
+
+        self.assertIsInstance(config.thresholds, ThresholdConfig)
+        self.assertEqual(config.thresholds.graph_monster_stroke_width, 15.0)
 
 
 if __name__ == "__main__":
