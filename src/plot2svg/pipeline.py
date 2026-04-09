@@ -259,7 +259,7 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
         raster_objects=raster_objects,
         graph_edges=scene_graph.graph_edges[:],
     )
-    scene_graph = build_graph(scene_graph)
+    scene_graph = build_graph(scene_graph, cfg)
     scene_graph = refine_layout(scene_graph)
 
     region_results = vectorize_regions(stage3_layers.graphic_layer, scene_graph.nodes, 1.0)

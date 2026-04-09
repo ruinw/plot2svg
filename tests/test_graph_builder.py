@@ -1,5 +1,6 @@
 import unittest
 
+from plot2svg.config import PipelineConfig, ThresholdConfig
 from plot2svg.graph_builder import _dedupe_graph_edges, _populate_router_obstacles, build_graph
 from plot2svg.router import FlowchartRouter
 from plot2svg.scene_graph import GraphEdge, IconObject, NodeObject, SceneGraph, SceneNode, SceneObject, StrokePrimitive
@@ -674,6 +675,42 @@ class GraphBuilderTest(unittest.TestCase):
 
         self.assertEqual(updated.graph_edges, [])
         self.assertEqual(updated.relations, [])
+
+    def test_build_graph_respects_custom_monster_stroke_thresholds(self) -> None:
+        graph = SceneGraph(
+            width=1200,
+            height=800,
+            nodes=[],
+            objects=[
+                SceneObject(id='object-left', object_type='label_box', bbox=[40, 120, 180, 220], node_ids=[]),
+                SceneObject(id='object-right', object_type='label_box', bbox=[720, 120, 860, 220], node_ids=[]),
+            ],
+            stroke_primitives=[
+                StrokePrimitive(
+                    id='stroke-primitive-custom-threshold',
+                    node_id='stroke-custom-threshold',
+                    points=[[176.0, 170.0], [420.0, 170.0], [720.0, 170.0]],
+                    width=16.0,
+                )
+            ],
+        )
+        cfg = PipelineConfig(
+            input_path='picture/F2.png',
+            output_dir='outputs/F2',
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=20.0,
+                graph_monster_stroke_wide_area_ratio=0.20,
+                graph_monster_stroke_area_ratio=0.20,
+                graph_monster_stroke_diagonal_ratio=0.95,
+                graph_monster_stroke_diagonal_width=20.0,
+            ),
+        )
+
+        updated = build_graph(graph, cfg=cfg)
+
+        self.assertEqual(len(updated.graph_edges), 1)
+        self.assertEqual(updated.graph_edges[0].source_id, 'object-left')
+        self.assertEqual(updated.graph_edges[0].target_id, 'object-right')
 
     def test_build_graph_smooths_astar_route_to_key_turn_points(self) -> None:
         graph = SceneGraph(

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
+from .config import PipelineConfig, ThresholdConfig
 from .router import FlowchartRouter
 from .scene_graph import GraphEdge, SceneGraph, SceneRelation, StrokePrimitive
 
@@ -18,7 +19,7 @@ class _Anchor:
     bbox: list[float]
 
 
-def build_graph(scene_graph: SceneGraph) -> SceneGraph:
+def build_graph(scene_graph: SceneGraph, cfg: PipelineConfig | None = None) -> SceneGraph:
     """Attach stroke endpoints to nearby anchors and synthesize connector relations."""
 
     absorbed_region_ids = {
@@ -37,10 +38,11 @@ def build_graph(scene_graph: SceneGraph) -> SceneGraph:
         include_icon_objects=True,
     )
     edges: list[GraphEdge] = []
+    thresholds = _graph_thresholds(cfg)
     for primitive in scene_graph.stroke_primitives:
         if len(primitive.points) < 2:
             continue
-        if _is_monster_stroke_primitive(primitive, scene_graph.width, scene_graph.height):
+        if _is_monster_stroke_primitive(primitive, scene_graph.width, scene_graph.height, thresholds):
             continue
         edge_path = [point[:] for point in primitive.points]
         source = _anchor_for_endpoint(edge_path, endpoint_index=0, anchors=anchors, exclude_id=None)
@@ -184,7 +186,18 @@ def _build_anchors(
     return anchors
 
 
-def _is_monster_stroke_primitive(primitive: StrokePrimitive, canvas_width: int, canvas_height: int) -> bool:
+def _graph_thresholds(cfg: PipelineConfig | None) -> ThresholdConfig:
+    if cfg is not None and cfg.thresholds is not None:
+        return cfg.thresholds
+    return ThresholdConfig()
+
+
+def _is_monster_stroke_primitive(
+    primitive: StrokePrimitive,
+    canvas_width: int,
+    canvas_height: int,
+    thresholds: ThresholdConfig,
+) -> bool:
     if primitive.metadata.get('shape_hint') == 'panel_arrow':
         return False
     xs = [point[0] for point in primitive.points]
@@ -195,13 +208,13 @@ def _is_monster_stroke_primitive(primitive: StrokePrimitive, canvas_width: int, 
     canvas_area = max(float(canvas_width * canvas_height), 1.0)
     bbox_diagonal = math.hypot(bbox_w, bbox_h)
     canvas_diagonal = math.hypot(float(canvas_width), float(canvas_height))
-    if primitive.width > 15.0 and bbox_area > canvas_area * 0.10:
+    if primitive.width > thresholds.graph_monster_stroke_width and bbox_area > canvas_area * thresholds.graph_monster_stroke_wide_area_ratio:
         return True
-    if bbox_area > canvas_area * 0.15:
+    if bbox_area > canvas_area * thresholds.graph_monster_stroke_area_ratio:
         return True
-    if bbox_diagonal > canvas_diagonal * 0.5 and primitive.width > 6.0:
+    if bbox_diagonal > canvas_diagonal * thresholds.graph_monster_stroke_diagonal_ratio and primitive.width > thresholds.graph_monster_stroke_diagonal_width:
         return True
-    if primitive.width > 15.0:
+    if primitive.width > thresholds.graph_monster_stroke_width:
         return True
     return False
 
