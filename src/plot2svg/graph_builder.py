@@ -45,21 +45,22 @@ def build_graph(scene_graph: SceneGraph, cfg: PipelineConfig | None = None) -> S
         if _is_monster_stroke_primitive(primitive, scene_graph.width, scene_graph.height, thresholds):
             continue
         edge_path = [point[:] for point in primitive.points]
-        source = _anchor_for_endpoint(edge_path, endpoint_index=0, anchors=anchors, exclude_id=None)
+        source = _anchor_for_endpoint(edge_path, endpoint_index=0, anchors=anchors, exclude_id=None, thresholds=thresholds)
         target = _anchor_for_endpoint(
             edge_path,
             endpoint_index=-1,
             anchors=anchors,
             exclude_id=source.id if source is not None else None,
+            thresholds=thresholds,
         )
-        source, target = _repair_partial_edge_anchors(edge_path, source, target, supplemental_anchors)
-        if _should_drop_weak_one_sided_edge(edge_path, source, target, supplemental_anchors):
+        source, target = _repair_partial_edge_anchors(edge_path, source, target, supplemental_anchors, thresholds)
+        if _should_drop_weak_one_sided_edge(edge_path, source, target, supplemental_anchors, thresholds):
             continue
-        if _should_drop_partial_edge(edge_path, source, target):
+        if _should_drop_partial_edge(edge_path, source, target, thresholds):
             continue
         if _should_drop_overlapping_semantic_edge(source, target, object_node_ids):
             continue
-        if _should_drop_adjacent_text_cluster_link(source, target, primitive):
+        if _should_drop_adjacent_text_cluster_link(source, target, primitive, thresholds):
             continue
         edge_path = _snap_edge_path_to_anchors(edge_path, source, target)
         edge_path, route_degraded = _route_edge_path(edge_path, source, target, scene_graph, primitive)
@@ -224,12 +225,13 @@ def _anchor_for_endpoint(
     endpoint_index: int,
     anchors: list[_Anchor],
     exclude_id: str | None,
+    thresholds: ThresholdConfig,
 ) -> _Anchor | None:
     point = points[endpoint_index]
     reference_point: list[float] | None = None
     if len(points) >= 2:
         reference_point = points[1] if endpoint_index == 0 else points[-2]
-    return _nearest_anchor(point, anchors, exclude_id, reference_point)
+    return _nearest_anchor(point, anchors, exclude_id, reference_point, thresholds)
 
 
 def _repair_partial_edge_anchors(
@@ -237,10 +239,11 @@ def _repair_partial_edge_anchors(
     source: _Anchor | None,
     target: _Anchor | None,
     supplemental_anchors: list[_Anchor],
+    thresholds: ThresholdConfig,
 ) -> tuple[_Anchor | None, _Anchor | None]:
     if source is not None and target is not None:
         return source, target
-    if _path_length(points) < 60.0:
+    if _path_length(points) < thresholds.graph_partial_repair_min_length:
         return source, target
     if source is None:
         source = _anchor_for_endpoint(
@@ -248,6 +251,7 @@ def _repair_partial_edge_anchors(
             endpoint_index=0,
             anchors=supplemental_anchors,
             exclude_id=target.id if target is not None else None,
+            thresholds=thresholds,
         )
     if target is None:
         target = _anchor_for_endpoint(
@@ -255,6 +259,7 @@ def _repair_partial_edge_anchors(
             endpoint_index=-1,
             anchors=supplemental_anchors,
             exclude_id=source.id if source is not None else None,
+            thresholds=thresholds,
         )
     return source, target
 
@@ -263,21 +268,22 @@ def _should_drop_partial_edge(
     points: list[list[float]],
     source: _Anchor | None,
     target: _Anchor | None,
+    thresholds: ThresholdConfig,
 ) -> bool:
     path_length = _path_length(points)
     if source is not None and target is not None:
         return source.id == target.id
     if source is None and target is None:
-        return path_length < 90.0
+        return path_length < thresholds.graph_unanchored_fragment_min_length
     anchor = source or target
     unresolved_point = points[-1] if source is not None and target is None else points[0]
-    if anchor is not None and _point_to_bbox_gap(unresolved_point, anchor.bbox) <= 80.0:
+    if anchor is not None and _point_to_bbox_gap(unresolved_point, anchor.bbox) <= thresholds.graph_partial_anchor_gap:
         return True
     if anchor is None:
-        return path_length < 110.0
+        return path_length < thresholds.graph_partial_general_min_length
     if anchor.kind in {'text', 'icon', 'svg_template'}:
         return False
-    return path_length < 110.0
+    return path_length < thresholds.graph_partial_general_min_length
 
 
 
@@ -299,6 +305,7 @@ def _should_drop_adjacent_text_cluster_link(
     source: _Anchor | None,
     target: _Anchor | None,
     primitive: StrokePrimitive,
+    thresholds: ThresholdConfig,
 ) -> bool:
     if source is None or target is None:
         return False
@@ -308,10 +315,10 @@ def _should_drop_adjacent_text_cluster_link(
         return False
     horizontal_overlap = _interval_overlap(source.bbox[0], source.bbox[2], target.bbox[0], target.bbox[2])
     min_width = max(min(source.bbox[2] - source.bbox[0], target.bbox[2] - target.bbox[0]), 1.0)
-    if horizontal_overlap / min_width < 0.55:
+    if horizontal_overlap / min_width < thresholds.graph_text_cluster_overlap_ratio:
         return False
     vertical_gap = _interval_gap(source.bbox[1], source.bbox[3], target.bbox[1], target.bbox[3])
-    return vertical_gap <= 24.0
+    return vertical_gap <= thresholds.graph_text_cluster_vertical_gap
 
 
 def _interval_overlap(start_a: float, end_a: float, start_b: float, end_b: float) -> float:
@@ -327,6 +334,7 @@ def _should_drop_weak_one_sided_edge(
     source: _Anchor | None,
     target: _Anchor | None,
     anchors: list[_Anchor],
+    thresholds: ThresholdConfig,
 ) -> bool:
     if (source is None) == (target is None):
         return False
@@ -335,7 +343,7 @@ def _should_drop_weak_one_sided_edge(
         return False
     free_point = points[0] if source is None else points[-1]
     nearest_gap = min((_point_to_bbox_gap(free_point, anchor.bbox) for anchor in anchors if anchor.id != anchored.id), default=float('inf'))
-    return nearest_gap > 80.0 and _path_length(points) > 180.0
+    return nearest_gap > thresholds.graph_one_sided_anchor_gap and _path_length(points) > thresholds.graph_one_sided_min_length
 
 
 def _path_length(points: list[list[float]]) -> float:
@@ -350,6 +358,7 @@ def _nearest_anchor(
     anchors: list[_Anchor],
     exclude_id: str | None,
     reference_point: list[float] | None,
+    thresholds: ThresholdConfig,
 ) -> _Anchor | None:
     candidates: list[tuple[float, _Anchor]] = []
     for anchor in anchors:
@@ -358,7 +367,7 @@ def _nearest_anchor(
         dx = point[0] - anchor.center[0]
         dy = point[1] - anchor.center[1]
         distance = math.hypot(dx, dy)
-        if distance <= _direct_snap_limit(anchor):
+        if distance <= _direct_snap_limit(anchor, thresholds):
             candidates.append((distance, anchor))
     if candidates:
         candidates.sort(key=lambda item: item[0])
@@ -369,10 +378,10 @@ def _nearest_anchor(
         if exclude_id is not None and anchor.id == exclude_id:
             continue
         gap = _point_to_bbox_gap(point, anchor.bbox)
-        if gap > _gap_snap_limit(anchor):
+        if gap > _gap_snap_limit(anchor, thresholds):
             continue
         center_distance = math.hypot(point[0] - anchor.center[0], point[1] - anchor.center[1])
-        gap_candidates.append((gap + center_distance * 0.03, anchor))
+        gap_candidates.append((gap + center_distance * thresholds.graph_gap_candidate_center_distance_weight, anchor))
     if gap_candidates:
         gap_candidates.sort(key=lambda item: item[0])
         return gap_candidates[0][1]
@@ -384,34 +393,35 @@ def _nearest_anchor(
     for anchor in anchors:
         if exclude_id is not None and anchor.id == exclude_id:
             continue
-        score = _directional_snap_score(point, reference_point, anchor)
+        score = _directional_snap_score(point, reference_point, anchor, thresholds)
         if score is None:
             continue
         directional_candidates.append((score, anchor))
     if directional_candidates:
         directional_candidates.sort(key=lambda item: item[0])
         return directional_candidates[0][1]
-    return _ray_extended_anchor(point, reference_point, anchors, exclude_id)
+    return _ray_extended_anchor(point, reference_point, anchors, exclude_id, thresholds)
 
 
-def _direct_snap_limit(anchor: _Anchor) -> float:
+def _direct_snap_limit(anchor: _Anchor, thresholds: ThresholdConfig) -> float:
     if anchor.kind == 'node':
-        return max(anchor.radius * 2.2, 24.0)
-    return max(anchor.radius * 1.1, 48.0)
+        return max(anchor.radius * thresholds.graph_direct_snap_node_radius_mult, thresholds.graph_direct_snap_node_min)
+    return max(anchor.radius * thresholds.graph_direct_snap_other_radius_mult, thresholds.graph_direct_snap_other_min)
 
 
-def _gap_snap_limit(anchor: _Anchor) -> float:
+def _gap_snap_limit(anchor: _Anchor, thresholds: ThresholdConfig) -> float:
     if anchor.kind == 'node':
-        return max(anchor.radius * 1.5, 16.0)
+        return max(anchor.radius * thresholds.graph_gap_snap_node_radius_mult, thresholds.graph_gap_snap_node_min)
     if anchor.kind in {'text', 'title'}:
-        return max(min(anchor.radius * 0.45, 28.0), 14.0)
-    return max(min(anchor.radius * 0.28, 44.0), 18.0)
+        return max(min(anchor.radius * thresholds.graph_gap_snap_text_radius_mult, thresholds.graph_gap_snap_text_max), thresholds.graph_gap_snap_text_min)
+    return max(min(anchor.radius * thresholds.graph_gap_snap_other_radius_mult, thresholds.graph_gap_snap_other_max), thresholds.graph_gap_snap_other_min)
 
 
 def _directional_snap_score(
     point: list[float],
     reference_point: list[float],
     anchor: _Anchor,
+    thresholds: ThresholdConfig,
 ) -> float | None:
     direction_x = point[0] - reference_point[0]
     direction_y = point[1] - reference_point[1]
@@ -429,27 +439,31 @@ def _directional_snap_score(
     unit_x = to_anchor_x / center_distance
     unit_y = to_anchor_y / center_distance
     alignment = direction_x * unit_x + direction_y * unit_y
-    if alignment < 0.72:
+    if alignment < thresholds.graph_directional_alignment_min:
         return None
 
     gap = _point_to_bbox_gap(point, anchor.bbox)
     if anchor.kind == 'node':
-        hard_cap = max(anchor.radius * 3.2, 42.0)
+        hard_cap = max(anchor.radius * thresholds.graph_directional_node_hard_cap_mult, thresholds.graph_directional_node_hard_cap_min)
         if alignment >= 0.9:
-            hard_cap = max(anchor.radius * 8.0, 96.0)
+            hard_cap = max(anchor.radius * thresholds.graph_directional_node_aligned_hard_cap_mult, thresholds.graph_directional_node_aligned_hard_cap_min)
     else:
-        hard_cap = max(anchor.radius * 1.8, 60.0)
+        hard_cap = max(anchor.radius * thresholds.graph_directional_other_hard_cap_mult, thresholds.graph_directional_other_hard_cap_min)
         if alignment >= 0.92:
-            hard_cap = max(anchor.radius * 2.4, 72.0)
+            hard_cap = max(anchor.radius * thresholds.graph_directional_other_aligned_hard_cap_mult, thresholds.graph_directional_other_aligned_hard_cap_min)
     if gap > hard_cap:
         return None
 
     lateral = abs(direction_x * to_anchor_y - direction_y * to_anchor_x)
-    lateral_cap = max(anchor.radius * 2.4, 22.0) if anchor.kind == 'node' else max(anchor.radius * 2.6, 36.0)
+    lateral_cap = (
+        max(anchor.radius * thresholds.graph_directional_node_lateral_cap_mult, thresholds.graph_directional_node_lateral_cap_min)
+        if anchor.kind == 'node'
+        else max(anchor.radius * thresholds.graph_directional_other_lateral_cap_mult, thresholds.graph_directional_other_lateral_cap_min)
+    )
     if lateral > lateral_cap:
         return None
 
-    return gap + center_distance * 0.05 - alignment * 10.0
+    return gap + center_distance * thresholds.graph_directional_center_distance_weight - alignment * thresholds.graph_directional_alignment_bonus
 
 
 def _point_to_bbox_gap(point: list[float], bbox: list[float]) -> float:
@@ -465,6 +479,7 @@ def _ray_extended_anchor(
     reference_point: list[float],
     anchors: list[_Anchor],
     exclude_id: str | None,
+    thresholds: ThresholdConfig,
 ) -> _Anchor | None:
     direction_x = point[0] - reference_point[0]
     direction_y = point[1] - reference_point[1]
@@ -479,7 +494,7 @@ def _ray_extended_anchor(
         if exclude_id is not None and anchor.id == exclude_id:
             continue
         distance = _ray_bbox_intersection_distance(point, [direction_x, direction_y], anchor.bbox)
-        if distance is None or distance > _ray_extension_limit(anchor):
+        if distance is None or distance > _ray_extension_limit(anchor, thresholds):
             continue
         candidates.append((distance, anchor))
     if not candidates:
@@ -488,12 +503,12 @@ def _ray_extended_anchor(
     return candidates[0][1]
 
 
-def _ray_extension_limit(anchor: _Anchor) -> float:
+def _ray_extension_limit(anchor: _Anchor, thresholds: ThresholdConfig) -> float:
     if anchor.kind == 'node':
-        return max(anchor.radius * 2.0, 30.0)
+        return max(anchor.radius * thresholds.graph_ray_extension_node_mult, thresholds.graph_ray_extension_node_min)
     if anchor.kind in {'text', 'svg_template'}:
-        return 52.0
-    return max(min(anchor.radius * 0.35, 54.0), 36.0)
+        return thresholds.graph_ray_extension_text_limit
+    return max(min(anchor.radius * thresholds.graph_ray_extension_other_mult, thresholds.graph_ray_extension_other_max), thresholds.graph_ray_extension_other_min)
 
 
 def _ray_bbox_intersection_distance(

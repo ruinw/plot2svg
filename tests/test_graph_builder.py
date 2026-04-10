@@ -712,6 +712,92 @@ class GraphBuilderTest(unittest.TestCase):
         self.assertEqual(updated.graph_edges[0].source_id, 'object-left')
         self.assertEqual(updated.graph_edges[0].target_id, 'object-right')
 
+    def test_build_graph_respects_custom_direct_snap_thresholds(self) -> None:
+        graph = SceneGraph(
+            width=220,
+            height=120,
+            nodes=[],
+            node_objects=[
+                NodeObject(id="node-a", node_id="region-a", center=[40.0, 60.0], radius=10.0, fill="#336699"),
+                NodeObject(id="node-b", node_id="region-b", center=[160.0, 60.0], radius=10.0, fill="#336699"),
+            ],
+            stroke_primitives=[
+                StrokePrimitive(
+                    id="stroke-primitive-near-miss",
+                    node_id="stroke-near-miss",
+                    points=[[22.0, 60.0], [100.0, 60.0], [144.0, 60.0]],
+                    width=2.0,
+                )
+            ],
+        )
+        cfg = PipelineConfig(
+            input_path='picture/F2.png',
+            output_dir='outputs/F2',
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                graph_direct_snap_node_radius_mult=1.0,
+                graph_direct_snap_node_min=10.0,
+                graph_direct_snap_other_radius_mult=1.1,
+                graph_direct_snap_other_min=48.0,
+                graph_gap_snap_node_radius_mult=0.1,
+                graph_gap_snap_node_min=1.0,
+                graph_directional_alignment_min=1.1,
+                graph_ray_extension_node_mult=0.1,
+                graph_ray_extension_node_min=1.0,
+                graph_ray_extension_text_limit=1.0,
+                graph_ray_extension_other_mult=0.1,
+                graph_ray_extension_other_max=1.0,
+                graph_ray_extension_other_min=1.0,
+            ),
+        )
+
+        updated = build_graph(graph, cfg=cfg)
+
+        self.assertEqual(len(updated.graph_edges), 1)
+        self.assertIsNone(updated.graph_edges[0].source_id)
+        self.assertIsNone(updated.graph_edges[0].target_id)
+
+    def test_build_graph_respects_custom_partial_edge_thresholds(self) -> None:
+        graph = SceneGraph(
+            width=300,
+            height=160,
+            nodes=[],
+            objects=[
+                SceneObject(id='object-box', object_type='label_box', bbox=[180, 60, 260, 120], node_ids=[]),
+            ],
+            stroke_primitives=[
+                StrokePrimitive(
+                    id='stroke-primitive-short-fragment',
+                    node_id='stroke-short-fragment',
+                    points=[[160.0, 80.0], [170.0, 82.0], [178.0, 81.0]],
+                    width=2.0,
+                )
+            ],
+        )
+        cfg = PipelineConfig(
+            input_path='picture/F2.png',
+            output_dir='outputs/F2',
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                graph_partial_repair_min_length=10.0,
+                graph_unanchored_fragment_min_length=10.0,
+                graph_partial_anchor_gap=10.0,
+                graph_partial_general_min_length=10.0,
+            ),
+        )
+
+        updated = build_graph(graph, cfg=cfg)
+
+        self.assertEqual(len(updated.graph_edges), 1)
+
     def test_build_graph_smooths_astar_route_to_key_turn_points(self) -> None:
         graph = SceneGraph(
             width=420,

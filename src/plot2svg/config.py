@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from pathlib import Path
 
 
@@ -19,6 +19,48 @@ class ThresholdConfig:
     graph_monster_stroke_area_ratio: float = 0.15
     graph_monster_stroke_diagonal_ratio: float = 0.50
     graph_monster_stroke_diagonal_width: float = 6.0
+    graph_partial_repair_min_length: float = 60.0
+    graph_unanchored_fragment_min_length: float = 90.0
+    graph_partial_anchor_gap: float = 80.0
+    graph_partial_general_min_length: float = 110.0
+    graph_text_cluster_overlap_ratio: float = 0.55
+    graph_text_cluster_vertical_gap: float = 24.0
+    graph_one_sided_anchor_gap: float = 80.0
+    graph_one_sided_min_length: float = 180.0
+    graph_direct_snap_node_radius_mult: float = 2.2
+    graph_direct_snap_node_min: float = 24.0
+    graph_direct_snap_other_radius_mult: float = 1.1
+    graph_direct_snap_other_min: float = 48.0
+    graph_gap_snap_node_radius_mult: float = 1.5
+    graph_gap_snap_node_min: float = 16.0
+    graph_gap_snap_text_radius_mult: float = 0.45
+    graph_gap_snap_text_max: float = 28.0
+    graph_gap_snap_text_min: float = 14.0
+    graph_gap_snap_other_radius_mult: float = 0.28
+    graph_gap_snap_other_max: float = 44.0
+    graph_gap_snap_other_min: float = 18.0
+    graph_gap_candidate_center_distance_weight: float = 0.03
+    graph_directional_alignment_min: float = 0.72
+    graph_directional_node_hard_cap_mult: float = 3.2
+    graph_directional_node_hard_cap_min: float = 42.0
+    graph_directional_node_aligned_hard_cap_mult: float = 8.0
+    graph_directional_node_aligned_hard_cap_min: float = 96.0
+    graph_directional_other_hard_cap_mult: float = 1.8
+    graph_directional_other_hard_cap_min: float = 60.0
+    graph_directional_other_aligned_hard_cap_mult: float = 2.4
+    graph_directional_other_aligned_hard_cap_min: float = 72.0
+    graph_directional_node_lateral_cap_mult: float = 2.4
+    graph_directional_node_lateral_cap_min: float = 22.0
+    graph_directional_other_lateral_cap_mult: float = 2.6
+    graph_directional_other_lateral_cap_min: float = 36.0
+    graph_directional_center_distance_weight: float = 0.05
+    graph_directional_alignment_bonus: float = 10.0
+    graph_ray_extension_node_mult: float = 2.0
+    graph_ray_extension_node_min: float = 30.0
+    graph_ray_extension_text_limit: float = 52.0
+    graph_ray_extension_other_mult: float = 0.35
+    graph_ray_extension_other_max: float = 54.0
+    graph_ray_extension_other_min: float = 36.0
 
 
 _PROFILE_THRESHOLD_OVERRIDES = {
@@ -107,13 +149,8 @@ def _thresholds_for_profile(profile: str) -> ThresholdConfig:
 
 def _validate_thresholds(thresholds: ThresholdConfig) -> None:
     """Validate threshold values."""
-    if thresholds.graph_monster_stroke_width <= 0:
-        raise ValueError("graph_monster_stroke_width must be positive")
-    if thresholds.graph_monster_stroke_wide_area_ratio <= 0:
-        raise ValueError("graph_monster_stroke_wide_area_ratio must be positive")
-    if thresholds.graph_monster_stroke_area_ratio <= 0:
-        raise ValueError("graph_monster_stroke_area_ratio must be positive")
-    if thresholds.graph_monster_stroke_diagonal_ratio <= 0:
-        raise ValueError("graph_monster_stroke_diagonal_ratio must be positive")
-    if thresholds.graph_monster_stroke_diagonal_width <= 0:
-        raise ValueError("graph_monster_stroke_diagonal_width must be positive")
+    for field_info in fields(thresholds):
+        field_name = field_info.name
+        value = getattr(thresholds, field_name)
+        if value <= 0:
+            raise ValueError(f"{field_name} must be positive")
