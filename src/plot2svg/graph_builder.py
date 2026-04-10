@@ -63,8 +63,8 @@ def build_graph(scene_graph: SceneGraph, cfg: PipelineConfig | None = None) -> S
         if _should_drop_adjacent_text_cluster_link(source, target, primitive, thresholds):
             continue
         edge_path = _snap_edge_path_to_anchors(edge_path, source, target)
-        edge_path, route_degraded = _route_edge_path(edge_path, source, target, scene_graph, primitive)
-        edge_path, border_degraded = _degrade_failed_route(edge_path, source, target, scene_graph.width, scene_graph.height)
+        edge_path, route_degraded = _route_edge_path(edge_path, source, target, scene_graph, primitive, thresholds)
+        edge_path, border_degraded = _degrade_failed_route(edge_path, source, target, scene_graph.width, scene_graph.height, thresholds)
         route_degraded = route_degraded or border_degraded
         edges.append(
             GraphEdge(
@@ -564,6 +564,7 @@ def _route_edge_path(
     target: _Anchor | None,
     scene_graph: SceneGraph,
     primitive: StrokePrimitive,
+    thresholds: ThresholdConfig,
 ) -> tuple[list[list[float]], bool]:
     if source is None or target is None or len(points) < 2:
         return points, False
@@ -572,19 +573,19 @@ def _route_edge_path(
 
     exclude_ids = {source.id, target.id}
     exclude_node_ids = _anchor_excluded_node_ids(scene_graph, source, target)
-    routed_points = _attempt_orthogonal_route(scene_graph, points[0], points[-1], exclude_ids, exclude_node_ids, relaxed=False)
+    routed_points = _attempt_orthogonal_route(scene_graph, points[0], points[-1], exclude_ids, exclude_node_ids, relaxed=False, thresholds=thresholds)
     if routed_points is None:
-        routed_points = _attempt_orthogonal_route(scene_graph, points[0], points[-1], exclude_ids, exclude_node_ids, relaxed=True)
+        routed_points = _attempt_orthogonal_route(scene_graph, points[0], points[-1], exclude_ids, exclude_node_ids, relaxed=True, thresholds=thresholds)
     if routed_points is None:
         return _force_manhattan_path(points[0], points[-1]), False
     return routed_points, False
 
 
-def _route_grid_size(canvas_width: int, canvas_height: int) -> int:
+def _route_grid_size(canvas_width: int, canvas_height: int, thresholds: ThresholdConfig) -> int:
     max_dim = max(canvas_width, canvas_height)
-    if max_dim >= 1200:
-        return 10
-    return 8
+    if max_dim >= thresholds.graph_route_grid_size_large_dim_threshold:
+        return thresholds.graph_route_grid_size_large
+    return thresholds.graph_route_grid_size_default
 
 
 def _attempt_orthogonal_route(
@@ -594,10 +595,11 @@ def _attempt_orthogonal_route(
     exclude_ids: set[str],
     exclude_node_ids: set[str],
     relaxed: bool,
+    thresholds: ThresholdConfig,
 ) -> list[list[float]] | None:
-    grid_size = _route_grid_size(scene_graph.width, scene_graph.height)
+    grid_size = _route_grid_size(scene_graph.width, scene_graph.height, thresholds)
     if relaxed:
-        grid_size = max(grid_size - 2, 6)
+        grid_size = max(grid_size - thresholds.graph_route_grid_size_relaxed_offset, thresholds.graph_route_grid_size_relaxed_min)
     router = FlowchartRouter(scene_graph.width, scene_graph.height, grid_size=grid_size)
     _populate_router_obstacles(
         router,
@@ -605,6 +607,7 @@ def _attempt_orthogonal_route(
         exclude_ids=exclude_ids,
         exclude_node_ids=exclude_node_ids,
         relaxed=relaxed,
+        thresholds=thresholds,
     )
     return router.find_orthogonal_path(start, end)
 
@@ -647,9 +650,11 @@ def _populate_router_obstacles(
     exclude_ids: set[str],
     exclude_node_ids: set[str] | None = None,
     relaxed: bool = False,
+    thresholds: ThresholdConfig | None = None,
 ) -> None:
-    text_padding = 0 if relaxed else 20
-    shape_padding = 0 if relaxed else 12
+    thresholds = thresholds or ThresholdConfig()
+    text_padding = 0 if relaxed else thresholds.graph_obstacle_text_padding
+    shape_padding = 0 if relaxed else thresholds.graph_obstacle_shape_padding
     excluded_nodes = exclude_node_ids or set()
     for node in scene_graph.nodes:
         if node.id in exclude_ids or node.id in excluded_nodes:
@@ -681,10 +686,11 @@ def _degrade_failed_route(
     target: _Anchor | None,
     canvas_width: int,
     canvas_height: int,
+    thresholds: ThresholdConfig,
 ) -> tuple[list[list[float]], bool]:
     if len(points) <= 2 or source is None or target is None:
         return points, False
-    if not _looks_like_failed_border_route(points, canvas_width, canvas_height):
+    if not _looks_like_failed_border_route(points, canvas_width, canvas_height, thresholds):
         return points, False
     return _force_manhattan_path(points[0], points[-1]), False
 
@@ -693,10 +699,11 @@ def _looks_like_failed_border_route(
     points: list[list[float]],
     canvas_width: int,
     canvas_height: int,
+    thresholds: ThresholdConfig,
 ) -> bool:
     if len(points) <= 2:
         return False
-    border_margin = 16.0
+    border_margin = thresholds.graph_border_route_margin
     border_points = [
         point for point in points[1:-1]
         if point[0] <= border_margin
@@ -704,14 +711,14 @@ def _looks_like_failed_border_route(
         or point[0] >= canvas_width - border_margin
         or point[1] >= canvas_height - border_margin
     ]
-    if len(border_points) < 2:
+    if len(border_points) < thresholds.graph_border_route_min_border_points:
         return False
 
     repeated_bottom_points = sum(1 for point in points[1:-1] if point[1] >= canvas_height - border_margin)
     repeated_top_points = sum(1 for point in points[1:-1] if point[1] <= border_margin)
     repeated_left_points = sum(1 for point in points[1:-1] if point[0] <= border_margin)
     repeated_right_points = sum(1 for point in points[1:-1] if point[0] >= canvas_width - border_margin)
-    if max(repeated_bottom_points, repeated_top_points, repeated_left_points, repeated_right_points) >= 3:
+    if max(repeated_bottom_points, repeated_top_points, repeated_left_points, repeated_right_points) >= thresholds.graph_border_route_repeat_count:
         return True
 
     direct_length = math.hypot(points[-1][0] - points[0][0], points[-1][1] - points[0][1])
@@ -720,7 +727,12 @@ def _looks_like_failed_border_route(
     path_length = _path_length(points)
     horizontal_span = max(point[0] for point in points) - min(point[0] for point in points)
     vertical_span = max(point[1] for point in points) - min(point[1] for point in points)
-    return len(border_points) >= 3 and path_length >= direct_length * 1.08 and horizontal_span >= canvas_width * 0.08 and vertical_span <= canvas_height * 0.25
+    return (
+        len(border_points) >= thresholds.graph_border_route_repeat_count
+        and path_length >= direct_length * thresholds.graph_border_route_length_ratio
+        and horizontal_span >= canvas_width * thresholds.graph_border_route_horizontal_span_ratio
+        and vertical_span <= canvas_height * thresholds.graph_border_route_vertical_span_ratio
+    )
 
 
 def _snap_endpoint_to_anchor(

@@ -61,6 +61,19 @@ class ThresholdConfig:
     graph_ray_extension_other_mult: float = 0.35
     graph_ray_extension_other_max: float = 54.0
     graph_ray_extension_other_min: float = 36.0
+    graph_route_grid_size_large_dim_threshold: int = 1200
+    graph_route_grid_size_large: int = 10
+    graph_route_grid_size_default: int = 8
+    graph_route_grid_size_relaxed_offset: int = 2
+    graph_route_grid_size_relaxed_min: int = 6
+    graph_obstacle_text_padding: int = 20
+    graph_obstacle_shape_padding: int = 12
+    graph_border_route_margin: float = 16.0
+    graph_border_route_min_border_points: int = 2
+    graph_border_route_repeat_count: int = 3
+    graph_border_route_length_ratio: float = 1.08
+    graph_border_route_horizontal_span_ratio: float = 0.08
+    graph_border_route_vertical_span_ratio: float = 0.25
 
 
 _PROFILE_THRESHOLD_OVERRIDES = {

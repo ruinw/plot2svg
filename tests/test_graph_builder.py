@@ -1,12 +1,31 @@
 import unittest
 
 from plot2svg.config import PipelineConfig, ThresholdConfig
-from plot2svg.graph_builder import _dedupe_graph_edges, _populate_router_obstacles, build_graph
+from plot2svg.graph_builder import _dedupe_graph_edges, _populate_router_obstacles, _route_grid_size, build_graph
 from plot2svg.router import FlowchartRouter
 from plot2svg.scene_graph import GraphEdge, IconObject, NodeObject, SceneGraph, SceneNode, SceneObject, StrokePrimitive
 
 
 class GraphBuilderTest(unittest.TestCase):
+    def test_route_grid_size_respects_custom_thresholds(self) -> None:
+        cfg = PipelineConfig(
+            input_path='picture/F2.png',
+            output_dir='outputs/F2',
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                graph_route_grid_size_large_dim_threshold=500,
+                graph_route_grid_size_large=12,
+                graph_route_grid_size_default=7,
+            ),
+        )
+
+        self.assertEqual(_route_grid_size(800, 300, cfg.thresholds), 12)
+        self.assertEqual(_route_grid_size(300, 300, cfg.thresholds), 7)
+
     def test_build_graph_anchors_edge_to_nodes(self) -> None:
         graph = SceneGraph(
             width=200,
@@ -333,6 +352,36 @@ class GraphBuilderTest(unittest.TestCase):
         )
 
         self.assertEqual(router.obstacles, set())
+
+    def test_populate_router_obstacles_respects_custom_padding(self) -> None:
+        graph = SceneGraph(
+            width=240,
+            height=240,
+            nodes=[
+                SceneNode(id='text-a', type='text', bbox=[80, 80, 160, 120], z_index=1, vector_mode='text_box', confidence=0.9, text_content='Label'),
+                SceneNode(id='template-a', type='region', bbox=[60, 140, 180, 200], z_index=2, vector_mode='region_path', confidence=0.9, shape_hint='svg_template'),
+            ],
+        )
+        default_router = FlowchartRouter(240, 240, grid_size=8)
+        tight_router = FlowchartRouter(240, 240, grid_size=8)
+        cfg = PipelineConfig(
+            input_path='picture/F2.png',
+            output_dir='outputs/F2',
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                graph_obstacle_text_padding=1,
+                graph_obstacle_shape_padding=1,
+            ),
+        )
+
+        _populate_router_obstacles(default_router, graph, exclude_ids=set())
+        _populate_router_obstacles(tight_router, graph, exclude_ids=set(), thresholds=cfg.thresholds)
+
+        self.assertLess(len(tight_router.obstacles), len(default_router.obstacles))
 
     def test_build_graph_drops_short_unanchored_fragment(self) -> None:
         graph = SceneGraph(
