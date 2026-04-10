@@ -33,6 +33,8 @@ class PipelineConfigTest(unittest.TestCase):
 
         self.assertIsInstance(config.thresholds, ThresholdConfig)
         self.assertEqual(config.thresholds.graph_monster_stroke_width, 15.0)
+        self.assertEqual(config.thresholds.graph_partial_repair_min_length, 60.0)
+        self.assertEqual(config.thresholds.graph_direct_snap_node_min, 24.0)
 
 
 if __name__ == "__main__":
