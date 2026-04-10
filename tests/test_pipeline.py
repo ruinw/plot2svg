@@ -2,18 +2,61 @@ from pathlib import Path
 import json
 import re
 import shutil
+import subprocess
+import sys
 import unittest
 
 import cv2
 import numpy as np
 
 from plot2svg.config import PipelineConfig
-from plot2svg.pipeline import _assemble_scene_graph, _build_region_vector_ignore_mask, _choose_processing_sources, _collect_icon_cleanup_node_ids, _detect_container_detail_regions, _detect_panel_arrow_regions, _detect_raster_objects, _erase_region_nodes, _extract_icon_objects, _filter_region_objects, _filter_stroke_scene_graph, _heal_masked_stage_image, _inpaint_node_and_icon_regions, _inject_network_container_object, _inject_panel_background_regions, _promote_svg_template_nodes, _proposals_for_stage, _prune_region_nodes_by_mask, _resolve_semantic_raster_objects, _should_inpaint_stroke_node, run_pipeline
+from plot2svg.pipeline import PipelineArtifacts, _assemble_scene_graph, _build_region_vector_ignore_mask, _choose_processing_sources, _collect_icon_cleanup_node_ids, _configure_cv_runtime_stability, _detect_container_detail_regions, _detect_panel_arrow_regions, _detect_raster_objects, _erase_region_nodes, _extract_icon_objects, _filter_region_objects, _filter_stroke_scene_graph, _heal_masked_stage_image, _inpaint_node_and_icon_regions, _inject_network_container_object, _inject_panel_background_regions, _promote_svg_template_nodes, _proposals_for_stage, _prune_region_nodes_by_mask, _resolve_semantic_raster_objects, _should_inpaint_stroke_node, run_pipeline
 from plot2svg.analyze import AnalysisResult
 from plot2svg.scene_graph import IconObject, NodeObject, RasterObject, RegionObject, SceneGraph, SceneNode
 
 
+def _run_pipeline_isolated(config: PipelineConfig) -> PipelineArtifacts:
+    repo_root = Path(__file__).resolve().parents[1]
+    code = (
+        "import json, sys; "
+        "from pathlib import Path; "
+        "from plot2svg.config import PipelineConfig; "
+        "from plot2svg.pipeline import run_pipeline; "
+        "cfg = PipelineConfig(input_path=Path(sys.argv[1]), output_dir=Path(sys.argv[2])); "
+        "artifacts = run_pipeline(cfg); "
+        "print(json.dumps({"
+        "'analyze_path': str(artifacts.analyze_path), "
+        "'enhanced_path': str(artifacts.enhanced_path), "
+        "'scene_graph_path': str(artifacts.scene_graph_path), "
+        "'final_svg_path': str(artifacts.final_svg_path)}))"
+    )
+    completed = subprocess.run(
+        [sys.executable, "-X", "utf8", "-c", code, str(config.input_path), str(config.output_dir)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    lines = [line for line in completed.stdout.splitlines() if line.strip()]
+    payload = json.loads(lines[-1])
+    return PipelineArtifacts(
+        analyze_path=Path(payload["analyze_path"]),
+        enhanced_path=Path(payload["enhanced_path"]),
+        scene_graph_path=Path(payload["scene_graph_path"]),
+        final_svg_path=Path(payload["final_svg_path"]),
+    )
+
+
 class PipelineTest(unittest.TestCase):
+    def test_configure_cv_runtime_stability_disables_unsafe_parallelism(self) -> None:
+        cv2.setNumThreads(4)
+        cv2.ocl.setUseOpenCL(True)
+
+        _configure_cv_runtime_stability()
+
+        self.assertEqual(cv2.getNumThreads(), 1)
+        self.assertFalse(cv2.ocl.useOpenCL())
+
     def test_collect_icon_cleanup_node_ids_includes_svg_template_regions(self) -> None:
         stage1_graph = SceneGraph(
             width=220,
@@ -172,7 +215,7 @@ class PipelineTest(unittest.TestCase):
             output_dir=Path('outputs/round366-slice-b-icon'),
         )
 
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
         data = json.loads(artifacts.scene_graph_path.read_text(encoding='utf-8'))
 
         self.assertTrue(data.get('icon_objects'))
@@ -191,7 +234,7 @@ class PipelineTest(unittest.TestCase):
             output_dir=output_dir,
         )
 
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
 
         self.assertTrue(artifacts.scene_graph_path.exists())
         self.assertTrue(artifacts.final_svg_path.exists())
@@ -223,7 +266,7 @@ class PipelineTest(unittest.TestCase):
 
     def test_run_pipeline_returns_artifact_paths(self) -> None:
         config = PipelineConfig(input_path=Path("picture/F2.png"), output_dir=Path("outputs/F2"))
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
         self.assertEqual(artifacts.analyze_path.name, "analyze.json")
         self.assertEqual(artifacts.enhanced_path.name, "enhanced.png")
         self.assertEqual(artifacts.scene_graph_path.name, "scene_graph.json")
@@ -241,7 +284,7 @@ class PipelineTest(unittest.TestCase):
 
     def test_small_lowres_pipeline_keeps_nodes_within_canvas_and_avoids_false_circles(self) -> None:
         config = PipelineConfig(input_path=Path("picture/orr_signature.png"), output_dir=Path("outputs/orr_signature"))
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
         data = json.loads(artifacts.scene_graph_path.read_text(encoding="utf-8"))
 
         self.assertLess(len(data["nodes"]), 40)
@@ -261,7 +304,7 @@ class PipelineTest(unittest.TestCase):
             input_path=Path("picture/a22efeb2-370f-4745-b79c-474a00f105f4.png"),
             output_dir=Path("outputs/a22-visual"),
         )
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
         svg_content = artifacts.final_svg_path.read_text(encoding="utf-8")
 
         fills = set(re.findall(r"fill='([^']+)'", svg_content))
@@ -279,7 +322,7 @@ class PipelineTest(unittest.TestCase):
             input_path=Path("picture/a22efeb2-370f-4745-b79c-474a00f105f4.png"),
             output_dir=Path("outputs/a22-structure"),
         )
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
         svg_content = artifacts.final_svg_path.read_text(encoding="utf-8")
         graph_data = json.loads(artifacts.scene_graph_path.read_text(encoding="utf-8"))
 
@@ -296,7 +339,7 @@ class PipelineTest(unittest.TestCase):
             input_path=Path("picture/a22efeb2-370f-4745-b79c-474a00f105f4.png"),
             output_dir=Path("outputs/a22-fan"),
         )
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
         svg_content = artifacts.final_svg_path.read_text(encoding="utf-8")
         graph_data = json.loads(artifacts.scene_graph_path.read_text(encoding="utf-8"))
 
@@ -309,7 +352,7 @@ class PipelineTest(unittest.TestCase):
             input_path=Path("picture/a22efeb2-370f-4745-b79c-474a00f105f4.png"),
             output_dir=Path("outputs/a22-connectors"),
         )
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
         svg_content = artifacts.final_svg_path.read_text(encoding="utf-8")
         graph_data = json.loads(artifacts.scene_graph_path.read_text(encoding="utf-8"))
 
@@ -323,7 +366,7 @@ class PipelineTest(unittest.TestCase):
             input_path=Path("picture/a22efeb2-370f-4745-b79c-474a00f105f4.png"),
             output_dir=Path("outputs/a22-objects"),
         )
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
         graph_data = json.loads(artifacts.scene_graph_path.read_text(encoding="utf-8"))
 
         object_types = [obj["object_type"] for obj in graph_data["objects"]]
@@ -336,7 +379,7 @@ class PipelineTest(unittest.TestCase):
             input_path=Path("picture/a22efeb2-370f-4745-b79c-474a00f105f4.png"),
             output_dir=Path("outputs/a22-object-driven"),
         )
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
         graph_data = json.loads(artifacts.scene_graph_path.read_text(encoding="utf-8"))
         svg_content = artifacts.final_svg_path.read_text(encoding="utf-8")
 
@@ -352,7 +395,7 @@ class PipelineTest(unittest.TestCase):
             input_path=Path("picture/a22efeb2-370f-4745-b79c-474a00f105f4.png"),
             output_dir=Path("outputs/a22-round12-debug"),
         )
-        artifacts = run_pipeline(config)
+        artifacts = _run_pipeline_isolated(config)
 
         self.assertTrue((config.output_dir / "debug_lines_mask.png").exists())
         self.assertTrue((config.output_dir / "debug_region_segmentation.png").exists())

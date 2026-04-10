@@ -95,9 +95,17 @@ class PipelineArtifacts:
     final_svg_path: Path
 
 
+def _configure_cv_runtime_stability() -> None:
+    """Clamp OpenCV runtime settings to a stable baseline for repeated runs."""
+    cv2.setNumThreads(1)
+    if hasattr(cv2, "ocl"):
+        cv2.ocl.setUseOpenCL(False)
+
+
 def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     """Run the subtraction-style pipeline and persist protocol artifacts."""
 
+    _configure_cv_runtime_stability()
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
 
     analysis = analyze_image(cfg.input_path)
