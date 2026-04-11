@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import statistics
 
+from .config import PipelineConfig, ThresholdConfig
 from .scene_graph import (
     SceneGraph,
     SceneGroup,
@@ -17,9 +18,10 @@ from .scene_graph import (
 from .svg_templates import append_template_role, extract_template_name
 
 
-def detect_structures(scene_graph: SceneGraph) -> SceneGraph:
+def detect_structures(scene_graph: SceneGraph, cfg: PipelineConfig | None = None) -> SceneGraph:
     """Classify boxes/arrows and detect containers, returning an updated SceneGraph."""
 
+    thresholds = _structure_thresholds(cfg)
     node_map = {node.id: node for node in scene_graph.nodes}
     groups = [_clone_group(g) for g in scene_graph.groups]
     updated_nodes = {node.id: node for node in scene_graph.nodes}
@@ -27,15 +29,16 @@ def detect_structures(scene_graph: SceneGraph) -> SceneGraph:
     objects = [_clone_object(o) for o in scene_graph.objects]
     object_type_index = _build_object_type_index(objects)
 
-    groups = _classify_boxes(groups, node_map, object_type_index)
-    groups = _classify_arrows(groups, node_map)
-    relations = _detect_connector_relations(groups, node_map, relations)
+    groups = _classify_boxes(groups, node_map, object_type_index, thresholds)
+    groups = _classify_arrows(groups, node_map, thresholds)
+    relations = _detect_connector_relations(groups, node_map, relations, thresholds)
     groups, updated_nodes, relations = _detect_fans(
         groups,
         updated_nodes,
         relations,
         scene_graph.width,
         scene_graph.height,
+        thresholds,
     )
     groups, updated_nodes = _detect_containers(
         groups, updated_nodes, scene_graph.width, scene_graph.height,
@@ -66,6 +69,7 @@ def _classify_boxes(
     groups: list[SceneGroup],
     node_map: dict[str, SceneNode],
     object_type_index: dict[str, set[str]],
+    thresholds: ThresholdConfig,
 ) -> list[SceneGroup]:
     """Tag labeled_region / labeled_component groups as shape_type='box'."""
 
@@ -85,7 +89,7 @@ def _classify_boxes(
             region_node is not None
             and has_text
             and not (object_type_index.get(region_node.id, set()) & {"network_container", "cluster_region"})
-            and _is_box_shape(region_node)
+            and _is_box_shape(region_node, thresholds)
         ):
             group.shape_type = "box"
         result.append(group)
@@ -103,11 +107,11 @@ def _primary_region(
     return None
 
 
-def _is_box_shape(node: SceneNode) -> bool:
+def _is_box_shape(node: SceneNode, thresholds: ThresholdConfig) -> bool:
     w = max(node.bbox[2] - node.bbox[0], 1)
     h = max(node.bbox[3] - node.bbox[1], 1)
     aspect = max(w / h, h / w)
-    return aspect < 6.0 and min(w, h) >= 20
+    return aspect < thresholds.detect_structure_box_aspect_max and min(w, h) >= thresholds.detect_structure_box_min_side
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +121,7 @@ def _is_box_shape(node: SceneNode) -> bool:
 def _classify_arrows(
     groups: list[SceneGroup],
     node_map: dict[str, SceneNode],
+    thresholds: ThresholdConfig,
 ) -> list[SceneGroup]:
     """Tag connector groups as shape_type='arrow' with optional direction."""
 
@@ -129,9 +134,9 @@ def _classify_arrows(
         group.shape_type = "arrow"
         w = max(group.bbox[2] - group.bbox[0], 1)
         h = max(group.bbox[3] - group.bbox[1], 1)
-        if w >= h * 2.0:
+        if w >= h * thresholds.detect_structure_arrow_aspect_ratio:
             group.direction = "right"
-        elif h >= w * 2.0:
+        elif h >= w * thresholds.detect_structure_arrow_aspect_ratio:
             group.direction = "down"
         result.append(group)
     return result
@@ -152,6 +157,7 @@ def _detect_fans(
     relations: list[SceneRelation],
     canvas_w: int,
     _canvas_h: int,
+    thresholds: ThresholdConfig,
 ) -> tuple[list[SceneGroup], dict[str, SceneNode], list[SceneRelation]]:
     assigned_ids = {cid for group in groups for cid in group.child_ids}
     circle_nodes = [
@@ -178,21 +184,21 @@ def _detect_fans(
         x1, y1, x2, y2 = stroke.bbox
         width = max(x2 - x1, 1)
         height = max(y2 - y1, 1)
-        if height < _FAN_MIN_HEIGHT or x1 > canvas_w * _FAN_MAX_X_RATIO:
+        if height < thresholds.detect_structure_fan_min_height or x1 > canvas_w * thresholds.detect_structure_fan_max_x_ratio:
             continue
-        if height < width * 1.8:
+        if height < width * thresholds.detect_structure_fan_height_width_ratio:
             continue
 
         sources = [
             node for node in circle_nodes
-            if abs(node.bbox[0] - x1) <= 18
-            and node.bbox[1] >= y1 - 8
-            and node.bbox[3] <= y2 + 8
+            if abs(node.bbox[0] - x1) <= thresholds.detect_structure_fan_source_x_tolerance
+            and node.bbox[1] >= y1 - thresholds.detect_structure_fan_source_y_margin
+            and node.bbox[3] <= y2 + thresholds.detect_structure_fan_source_y_margin
         ]
-        if len(sources) < _FAN_MIN_SOURCE_COUNT:
+        if len(sources) < thresholds.detect_structure_fan_min_source_count:
             continue
 
-        target = _find_fan_target(stroke, region_nodes)
+        target = _find_fan_target(stroke, region_nodes, thresholds)
         if target is None:
             continue
 
@@ -235,6 +241,7 @@ def _detect_connector_relations(
     groups: list[SceneGroup],
     node_map: dict[str, SceneNode],
     relations: list[SceneRelation],
+    thresholds: ThresholdConfig,
 ) -> list[SceneRelation]:
     existing_group_ids = {relation.group_id for relation in relations if relation.group_id is not None}
     anchor_nodes = [
@@ -252,8 +259,8 @@ def _detect_connector_relations(
             continue
 
         source_point, target_point = _connector_endpoints(group)
-        source_node = _nearest_anchor(source_point, anchor_nodes, exclude_ids=set(group.child_ids))
-        target_node = _nearest_anchor(target_point, anchor_nodes, exclude_ids=set(group.child_ids) | ({source_node.id} if source_node else set()))
+        source_node = _nearest_anchor(source_point, anchor_nodes, exclude_ids=set(group.child_ids), thresholds=thresholds)
+        target_node = _nearest_anchor(target_point, anchor_nodes, exclude_ids=set(group.child_ids) | ({source_node.id} if source_node else set()), thresholds=thresholds)
         if source_node is None or target_node is None:
             continue
 
@@ -274,19 +281,19 @@ def _detect_connector_relations(
     return relations
 
 
-def _find_fan_target(stroke: SceneNode, region_nodes: list[SceneNode]) -> SceneNode | None:
+def _find_fan_target(stroke: SceneNode, region_nodes: list[SceneNode], thresholds: ThresholdConfig) -> SceneNode | None:
     sx1, sy1, sx2, sy2 = stroke.bbox
     candidates: list[tuple[int, int, SceneNode]] = []
     for node in region_nodes:
         x1, y1, x2, y2 = node.bbox
         width = x2 - x1
         height = y2 - y1
-        if width < 60 or height < 24:
+        if width < thresholds.detect_structure_fan_target_min_width or height < thresholds.detect_structure_fan_target_min_height:
             continue
         if x1 <= sx2:
             continue
         gap = x1 - sx2
-        if gap > 160:
+        if gap > thresholds.detect_structure_fan_target_max_gap:
             continue
         overlap_y = max(0, min(sy2, y2) - max(sy1, y1))
         if overlap_y <= 0:
@@ -322,6 +329,7 @@ def _nearest_anchor(
     point: tuple[float, float],
     nodes: list[SceneNode],
     exclude_ids: set[str],
+    thresholds: ThresholdConfig,
 ) -> SceneNode | None:
     candidates: list[tuple[float, int, SceneNode]] = []
     px, py = point
@@ -329,13 +337,19 @@ def _nearest_anchor(
         if node.id in exclude_ids:
             continue
         distance = _point_to_bbox_distance(point, node.bbox)
-        if distance > 140.0:
+        if distance > thresholds.detect_structure_connector_anchor_max_distance:
             continue
         candidates.append((distance, -_bbox_area(node.bbox), node))
     if not candidates:
         return None
     candidates.sort(key=lambda item: (item[0], item[1]))
     return candidates[0][2]
+
+
+def _structure_thresholds(cfg: PipelineConfig | None) -> ThresholdConfig:
+    if cfg is not None and cfg.thresholds is not None:
+        return cfg.thresholds
+    return ThresholdConfig()
 
 
 def _point_to_bbox_distance(point: tuple[float, float], bbox: list[int]) -> float:

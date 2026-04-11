@@ -33,6 +33,8 @@ class PipelineConfigTest(unittest.TestCase):
 
         self.assertIsInstance(config.thresholds, ThresholdConfig)
         self.assertEqual(config.thresholds.graph_monster_stroke_width, 15.0)
+        self.assertEqual(config.thresholds.detect_structure_box_aspect_max, 6.0)
+        self.assertEqual(config.thresholds.detect_structure_fan_min_source_count, 4)
         self.assertEqual(config.thresholds.graph_route_grid_size_default, 8)
         self.assertEqual(config.thresholds.graph_obstacle_text_padding, 20)
         self.assertEqual(config.thresholds.graph_partial_repair_min_length, 60.0)

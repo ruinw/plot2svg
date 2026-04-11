@@ -74,6 +74,19 @@ class ThresholdConfig:
     graph_border_route_length_ratio: float = 1.08
     graph_border_route_horizontal_span_ratio: float = 0.08
     graph_border_route_vertical_span_ratio: float = 0.25
+    detect_structure_box_aspect_max: float = 6.0
+    detect_structure_box_min_side: int = 20
+    detect_structure_arrow_aspect_ratio: float = 2.0
+    detect_structure_fan_min_source_count: int = 4
+    detect_structure_fan_min_height: int = 180
+    detect_structure_fan_max_x_ratio: float = 0.25
+    detect_structure_fan_height_width_ratio: float = 1.8
+    detect_structure_fan_source_x_tolerance: int = 18
+    detect_structure_fan_source_y_margin: int = 8
+    detect_structure_fan_target_min_width: int = 60
+    detect_structure_fan_target_min_height: int = 24
+    detect_structure_fan_target_max_gap: int = 160
+    detect_structure_connector_anchor_max_distance: float = 140.0
 
 
 _PROFILE_THRESHOLD_OVERRIDES = {
