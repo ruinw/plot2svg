@@ -87,6 +87,17 @@ class ThresholdConfig:
     detect_structure_fan_target_min_height: int = 24
     detect_structure_fan_target_max_gap: int = 160
     detect_structure_connector_anchor_max_distance: float = 140.0
+    stroke_sane_canvas_span_ratio: float = 0.8
+    stroke_sane_max_width: float = 30.0
+    stroke_min_polyline_length: float = 15.0
+    stroke_dense_min_mask_pixels: int = 140
+    stroke_dense_min_trace_pixels: int = 80
+    stroke_dense_min_width: int = 70
+    stroke_dense_min_height: int = 50
+    stroke_dense_max_area: int = 240000
+    stroke_dense_max_mask_pixels: int = 20000
+    stroke_dense_max_trace_pixels: int = 12000
+    stroke_dense_min_fill_ratio: float = 0.10
 
 
 _PROFILE_THRESHOLD_OVERRIDES = {
