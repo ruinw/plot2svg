@@ -4,6 +4,7 @@ import unittest
 import cv2
 import numpy as np
 
+from plot2svg.config import PipelineConfig, ThresholdConfig
 from plot2svg.scene_graph import SceneGraph, SceneNode
 from plot2svg.stroke_detector import _build_stroke_mask, _should_reconstruct_dense_lines, detect_strokes, is_stroke_sane
 
@@ -170,6 +171,31 @@ class StrokeDetectorTest(unittest.TestCase):
     def test_is_stroke_sane_rejects_absurd_stroke_width(self) -> None:
         self.assertFalse(is_stroke_sane([[20.0, 30.0], [140.0, 36.0]], image_width=200, image_height=100, stroke_width=31.0))
 
+    def test_is_stroke_sane_respects_custom_width_threshold(self) -> None:
+        cfg = PipelineConfig(
+            input_path='picture/F2.png',
+            output_dir='outputs/F2',
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                stroke_sane_canvas_span_ratio=0.8,
+                stroke_sane_max_width=40.0,
+            ),
+        )
+
+        self.assertTrue(
+            is_stroke_sane(
+                [[20.0, 30.0], [140.0, 36.0]],
+                image_width=200,
+                image_height=100,
+                stroke_width=31.0,
+                thresholds=cfg.thresholds,
+            )
+        )
+
 
     def test_detect_strokes_drops_short_isolated_segment(self) -> None:
         image = np.full((60, 80), 255, dtype=np.uint8)
@@ -186,12 +212,64 @@ class StrokeDetectorTest(unittest.TestCase):
 
         self.assertEqual(primitives, [])
 
+    def test_detect_strokes_respects_custom_min_polyline_length(self) -> None:
+        image = np.full((60, 80), 255, dtype=np.uint8)
+        cv2.line(image, (20, 30), (30, 30), 0, 2)
+        graph = SceneGraph(
+            width=80,
+            height=60,
+            nodes=[
+                SceneNode(id='stroke-short', type='stroke', bbox=[18, 24, 34, 36], z_index=1, vector_mode='stroke_path', confidence=0.9)
+            ],
+        )
+        cfg = PipelineConfig(
+            input_path='picture/F2.png',
+            output_dir='outputs/F2',
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                stroke_min_polyline_length=5.0,
+            ),
+        )
+
+        primitives = detect_strokes(image, graph, cfg=cfg)
+
+        self.assertEqual(len(primitives), 1)
+
 
     def test_dense_reconstruction_skips_oversized_masks(self) -> None:
         mask = np.full((720, 1380), 255, dtype=np.uint8)
         skeleton = np.full((720, 1380), 255, dtype=np.uint8)
 
         self.assertFalse(_should_reconstruct_dense_lines(mask, skeleton, True))
+
+    def test_dense_reconstruction_respects_custom_thresholds(self) -> None:
+        mask = np.full((120, 120), 255, dtype=np.uint8)
+        skeleton = np.full((120, 120), 255, dtype=np.uint8)
+        cfg = PipelineConfig(
+            input_path='picture/F2.png',
+            output_dir='outputs/F2',
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                stroke_dense_min_mask_pixels=10,
+                stroke_dense_min_trace_pixels=10,
+                stroke_dense_min_width=10,
+                stroke_dense_min_height=10,
+                stroke_dense_max_area=50000,
+                stroke_dense_max_mask_pixels=50000,
+                stroke_dense_max_trace_pixels=50000,
+                stroke_dense_min_fill_ratio=0.01,
+            ),
+        )
+
+        self.assertTrue(_should_reconstruct_dense_lines(mask, skeleton, True, thresholds=cfg.thresholds))
 
     def test_detect_strokes_reconstructs_dense_fan_into_multiple_lines(self) -> None:
         image = np.full((150, 240), 255, dtype=np.uint8)

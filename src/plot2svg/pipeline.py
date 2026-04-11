@@ -176,6 +176,7 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
         stage2_layers.graphic_layer,
         stage2_stroke_graph,
         1.0,
+        cfg=cfg,
         debug_mask_path=cfg.output_dir / 'debug_lines_mask.png',
     )
 

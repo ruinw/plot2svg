@@ -9,6 +9,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from .config import PipelineConfig, ThresholdConfig
 from .image_io import read_image, write_image
 
 from .dense_line_reconstructor import line_length as dense_line_length
@@ -29,6 +30,7 @@ def detect_strokes(
     image_input: Path | np.ndarray,
     scene_graph: SceneGraph,
     coordinate_scale: float = 1.0,
+    cfg: PipelineConfig | None = None,
     debug_mask_path: Path | None = None,
 ) -> list[StrokePrimitive]:
     """Trace scene-graph stroke nodes into editable polylines."""
@@ -39,13 +41,14 @@ def detect_strokes(
         for node in scene_graph.nodes
         if node.type == 'region' and node.shape_hint == 'triangle'
     ]
+    thresholds = _stroke_thresholds(cfg)
     primitives: list[StrokePrimitive] = []
     debug_mask = np.zeros((scene_graph.height, scene_graph.width), dtype=np.uint8)
     for node in scene_graph.nodes:
         if node.type != 'stroke':
             continue
         crop = _extract_scaled_crop(image, node.bbox, coordinate_scale)
-        traced_primitives, local_mask = _trace_stroke_crop(crop, node.bbox, arrow_region_nodes)
+        traced_primitives, local_mask = _trace_stroke_crop(crop, node.bbox, arrow_region_nodes, thresholds)
         _merge_debug_mask(debug_mask, local_mask, node.bbox)
         for traced in traced_primitives:
             if not _should_emit_stroke_primitive(
@@ -53,6 +56,7 @@ def detect_strokes(
                 traced.width,
                 scene_graph.width,
                 scene_graph.height,
+                thresholds=thresholds,
             ):
                 continue
             primitive_id = f'stroke-primitive-{node.id}{traced.id_suffix}'
@@ -78,9 +82,11 @@ def is_stroke_sane(
     image_width: int,
     image_height: int,
     stroke_width: float,
+    thresholds: ThresholdConfig | None = None,
 ) -> bool:
     """Reject globally implausible stroke hallucinations."""
 
+    thresholds = thresholds or ThresholdConfig()
     if not stroke_points or len(stroke_points) < 2:
         return False
 
@@ -88,9 +94,9 @@ def is_stroke_sane(
     ys = [point[1] for point in stroke_points]
     bbox_w = max(xs) - min(xs)
     bbox_h = max(ys) - min(ys)
-    if bbox_w > image_width * 0.8 or bbox_h > image_height * 0.8:
+    if bbox_w > image_width * thresholds.stroke_sane_canvas_span_ratio or bbox_h > image_height * thresholds.stroke_sane_canvas_span_ratio:
         return False
-    if stroke_width > 30.0:
+    if stroke_width > thresholds.stroke_sane_max_width:
         return False
     return True
 
@@ -100,10 +106,12 @@ def _should_emit_stroke_primitive(
     width: float,
     image_width: int,
     image_height: int,
+    thresholds: ThresholdConfig | None = None,
 ) -> bool:
-    if _polyline_length(points) < 15.0:
+    thresholds = thresholds or ThresholdConfig()
+    if _polyline_length(points) < thresholds.stroke_min_polyline_length:
         return False
-    return is_stroke_sane(points, image_width, image_height, width)
+    return is_stroke_sane(points, image_width, image_height, width, thresholds=thresholds)
 
 
 def _polyline_length(points: list[list[float]]) -> float:
@@ -117,6 +125,7 @@ def _trace_stroke_crop(
     crop: np.ndarray,
     bbox: list[int],
     arrow_region_nodes: list[SceneNode],
+    thresholds: ThresholdConfig,
 ) -> tuple[list[_TracedPrimitive], np.ndarray]:
     x1, y1, x2, y2 = bbox
     empty_mask = np.zeros((max(y2 - y1, 1), max(x2 - x1, 1)), dtype=np.uint8)
@@ -133,7 +142,7 @@ def _trace_stroke_crop(
             detector_mode = f'{detector_mode}+skeleton'
             used_skeleton = True
 
-    dense_primitives = _trace_dense_line_cluster(mask, trace_mask, bbox, detector_mode, used_skeleton)
+    dense_primitives = _trace_dense_line_cluster(mask, trace_mask, bbox, detector_mode, used_skeleton, thresholds)
     if dense_primitives is not None:
         return dense_primitives, render_line_mask(trace_mask.shape, [
             (
@@ -217,8 +226,9 @@ def _trace_dense_line_cluster(
     bbox: list[int],
     detector_mode: str,
     used_skeleton: bool,
+    thresholds: ThresholdConfig,
 ) -> list[_TracedPrimitive] | None:
-    if not _should_reconstruct_dense_lines(mask, trace_mask, used_skeleton):
+    if not _should_reconstruct_dense_lines(mask, trace_mask, used_skeleton, thresholds=thresholds):
         return None
     reconstruction = reconstruct_dense_lines(trace_mask)
     if reconstruction is None or len(reconstruction.lines) < 3:
@@ -255,25 +265,37 @@ def _trace_dense_line_cluster(
     return primitives
 
 
-def _should_reconstruct_dense_lines(mask: np.ndarray, trace_mask: np.ndarray, used_skeleton: bool) -> bool:
+def _should_reconstruct_dense_lines(
+    mask: np.ndarray,
+    trace_mask: np.ndarray,
+    used_skeleton: bool,
+    thresholds: ThresholdConfig | None = None,
+) -> bool:
+    thresholds = thresholds or ThresholdConfig()
     if not used_skeleton:
         return False
     mask_coords = np.column_stack(np.where(mask > 0))
     trace_coords = np.column_stack(np.where(trace_mask > 0))
-    if len(mask_coords) < 140 or len(trace_coords) < 80:
+    if len(mask_coords) < thresholds.stroke_dense_min_mask_pixels or len(trace_coords) < thresholds.stroke_dense_min_trace_pixels:
         return False
     y1, x1 = mask_coords.min(axis=0)
     y2, x2 = mask_coords.max(axis=0)
     width = int(x2 - x1 + 1)
     height = int(y2 - y1 + 1)
-    if width < 70 or height < 50:
+    if width < thresholds.stroke_dense_min_width or height < thresholds.stroke_dense_min_height:
         return False
-    if width * height > 240000:
+    if width * height > thresholds.stroke_dense_max_area:
         return False
-    if len(mask_coords) > 20000 or len(trace_coords) > 12000:
+    if len(mask_coords) > thresholds.stroke_dense_max_mask_pixels or len(trace_coords) > thresholds.stroke_dense_max_trace_pixels:
         return False
     fill_ratio = float(len(mask_coords)) / max(float(width * height), 1.0)
-    return fill_ratio >= 0.10
+    return fill_ratio >= thresholds.stroke_dense_min_fill_ratio
+
+
+def _stroke_thresholds(cfg: PipelineConfig | None) -> ThresholdConfig:
+    if cfg is not None and cfg.thresholds is not None:
+        return cfg.thresholds
+    return ThresholdConfig()
 
 
 def _build_stroke_mask(crop: np.ndarray) -> tuple[np.ndarray, str]:
