@@ -210,7 +210,7 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     )
     scene_graph = _inject_network_container_object(build_object_instances(scene_graph))
     scene_graph = promote_component_groups(scene_graph)
-    scene_graph = detect_structures(scene_graph)
+    scene_graph = detect_structures(scene_graph, cfg)
     scene_graph = _inject_fan_relation(scene_graph)
     scene_graph = _attach_panel_background_regions(scene_graph, panel_nodes)
     scene_graph = _attach_synthetic_region_nodes(scene_graph, panel_arrow_nodes)

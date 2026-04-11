@@ -1,5 +1,6 @@
 import unittest
 
+from plot2svg.config import PipelineConfig, ThresholdConfig
 from plot2svg.detect_structure import detect_structures
 from plot2svg.export_svg import _shape_attrs
 from plot2svg.scene_graph import SceneGraph, SceneGroup, SceneNode, SceneObject
@@ -39,6 +40,32 @@ class BoxClassificationTest(unittest.TestCase):
         result = detect_structures(_make_graph(nodes, groups))
         self.assertIsNone(result.groups[0].shape_type)
 
+    def test_box_classification_respects_custom_aspect_threshold(self) -> None:
+        nodes = [
+            SceneNode(id="bg", type="background", bbox=[0, 0, 800, 600], z_index=0, vector_mode="region_path", confidence=1.0),
+            SceneNode(id="r1", type="region", bbox=[10, 10, 700, 25], z_index=1, vector_mode="region_path", confidence=0.9),
+            SceneNode(id="t1", type="text", bbox=[20, 12, 100, 23], z_index=2, vector_mode="text_box", confidence=0.9, text_content="Label"),
+        ]
+        groups = [
+            SceneGroup(id="g1", role="labeled_region", bbox=[10, 10, 700, 25], child_ids=["r1", "t1"]),
+        ]
+        cfg = PipelineConfig(
+            input_path="picture/F2.png",
+            output_dir="outputs/F2",
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                detect_structure_box_aspect_max=100.0,
+                detect_structure_box_min_side=10,
+            ),
+        )
+
+        result = detect_structures(_make_graph(nodes, groups), cfg=cfg)
+        self.assertEqual(result.groups[0].shape_type, "box")
+
     def test_network_container_object_not_classified_as_box(self) -> None:
         nodes = [
             SceneNode(id="bg", type="background", bbox=[0, 0, 1600, 900], z_index=0, vector_mode="region_path", confidence=1.0),
@@ -73,6 +100,31 @@ class ArrowClassificationTest(unittest.TestCase):
         result = detect_structures(_make_graph(nodes, groups))
         self.assertEqual(result.groups[0].shape_type, "arrow")
         self.assertEqual(result.groups[0].direction, "right")
+
+    def test_arrow_classification_respects_custom_aspect_threshold(self) -> None:
+        nodes = [
+            SceneNode(id="bg", type="background", bbox=[0, 0, 800, 600], z_index=0, vector_mode="region_path", confidence=1.0),
+            SceneNode(id="s1", type="stroke", bbox=[100, 200, 400, 210], z_index=1, vector_mode="stroke_path", confidence=0.8),
+        ]
+        groups = [
+            SceneGroup(id="c1", role="connector", bbox=[100, 200, 400, 210], child_ids=["s1"]),
+        ]
+        cfg = PipelineConfig(
+            input_path="picture/F2.png",
+            output_dir="outputs/F2",
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                detect_structure_arrow_aspect_ratio=100.0,
+            ),
+        )
+
+        result = detect_structures(_make_graph(nodes, groups), cfg=cfg)
+        self.assertEqual(result.groups[0].shape_type, "arrow")
+        self.assertIsNone(result.groups[0].direction)
 
     def test_vertical_connector_classified_as_down_arrow(self) -> None:
         nodes = [
@@ -188,6 +240,32 @@ class FanDetectionTest(unittest.TestCase):
         self.assertEqual(fan_relations[0].target_ids, ["target"])
         self.assertEqual(fan_relations[0].group_id, fans[0].id)
         self.assertEqual(fan_relations[0].source_ids, ["c1", "c2", "c3", "c4", "c5"])
+
+    def test_fan_detection_respects_custom_min_source_count(self) -> None:
+        nodes = [
+            SceneNode(id="bg", type="background", bbox=[0, 0, 800, 600], z_index=0, vector_mode="region_path", confidence=1.0),
+            SceneNode(id="stroke-fan", type="stroke", bbox=[20, 80, 150, 520], z_index=1, vector_mode="stroke_path", confidence=0.9),
+            SceneNode(id="target", type="region", bbox=[180, 280, 320, 340], z_index=2, vector_mode="region_path", confidence=0.9),
+            SceneNode(id="c1", type="region", bbox=[22, 90, 42, 110], z_index=3, vector_mode="region_path", confidence=0.9, shape_hint="circle"),
+            SceneNode(id="c2", type="region", bbox=[22, 150, 42, 170], z_index=4, vector_mode="region_path", confidence=0.9, shape_hint="circle"),
+            SceneNode(id="c3", type="region", bbox=[22, 210, 42, 230], z_index=5, vector_mode="region_path", confidence=0.9, shape_hint="circle"),
+        ]
+        cfg = PipelineConfig(
+            input_path="picture/F2.png",
+            output_dir="outputs/F2",
+            thresholds=ThresholdConfig(
+                graph_monster_stroke_width=15.0,
+                graph_monster_stroke_wide_area_ratio=0.10,
+                graph_monster_stroke_area_ratio=0.15,
+                graph_monster_stroke_diagonal_ratio=0.50,
+                graph_monster_stroke_diagonal_width=6.0,
+                detect_structure_fan_min_source_count=3,
+            ),
+        )
+
+        result = detect_structures(_make_graph(nodes, groups=[]), cfg=cfg)
+        fans = [g for g in result.groups if g.role == "fan"]
+        self.assertEqual(len(fans), 1)
 
 
 class RegressionTest(unittest.TestCase):
