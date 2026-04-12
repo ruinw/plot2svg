@@ -98,6 +98,8 @@ class ThresholdConfig:
     stroke_dense_max_mask_pixels: int = 20000
     stroke_dense_max_trace_pixels: int = 12000
     stroke_dense_min_fill_ratio: float = 0.10
+    ocr_early_exit_confidence: float = 0.85
+    ocr_min_pixel_std: float = 10.0
 
 
 _PROFILE_THRESHOLD_OVERRIDES = {

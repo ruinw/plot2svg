@@ -21,8 +21,8 @@ from .scene_graph import SceneGraph, SceneNode
 _OCR_ENGINE_FULL: RapidOCR | None = None
 _OCR_ENGINE_REC: RapidOCR | None = None
 
-_EARLY_EXIT_CONFIDENCE = 0.85
-_MIN_PIXEL_STD = 10.0
+_EARLY_EXIT_CONFIDENCE = PipelineConfig(input_path=".", output_dir=".").thresholds.ocr_early_exit_confidence
+_MIN_PIXEL_STD = PipelineConfig(input_path=".", output_dir=".").thresholds.ocr_min_pixel_std
 
 ImageInput = Union[Path, np.ndarray]
 
@@ -211,22 +211,23 @@ def _read_text_from_bbox(
     cfg: PipelineConfig | None = None,
     coordinate_scale: float = 1.0,
 ) -> str | None:
+    thresholds = _ocr_thresholds(cfg)
     crop = _extract_scaled_crop(image, bbox, coordinate_scale, margin=20)
     if crop.size == 0:
         return None
     gray_check = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim == 3 else crop
-    if np.std(gray_check) < _MIN_PIXEL_STD:
+    if np.std(gray_check) < thresholds.ocr_min_pixel_std:
         return None
     candidates: list[tuple[str, float]] = []
     for variant in _prepare_ocr_variants(crop, cfg):
         result, _ = _get_ocr_engine_full()(variant)
         new_candidates = _extract_ocr_candidates(result)
         candidates.extend(new_candidates)
-        if any(conf >= _EARLY_EXIT_CONFIDENCE for _, conf in new_candidates):
+        if any(conf >= thresholds.ocr_early_exit_confidence for _, conf in new_candidates):
             break
     text = choose_best_ocr_text(candidates)
     best_conf = max((conf for _, conf in candidates), default=0.0)
-    if text and (crop.shape[0] < 60 or best_conf >= _EARLY_EXIT_CONFIDENCE):
+    if text and (crop.shape[0] < 60 or best_conf >= thresholds.ocr_early_exit_confidence):
         return normalize_ocr_text(text)
     line_text = _read_multiline_text(crop)
     if line_text:
@@ -516,6 +517,12 @@ def _load_color_image(image_input: ImageInput) -> np.ndarray:
     if image is None:
         raise ValueError(f"Failed to read image: {image_input}")
     return image
+
+
+def _ocr_thresholds(cfg: PipelineConfig | None):
+    if cfg is not None and cfg.thresholds is not None:
+        return cfg.thresholds
+    return PipelineConfig(input_path=".", output_dir=".").thresholds
 
 
 def _extract_scaled_crop(
