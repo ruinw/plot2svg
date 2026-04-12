@@ -100,6 +100,15 @@ class ThresholdConfig:
     stroke_dense_min_fill_ratio: float = 0.10
     ocr_early_exit_confidence: float = 0.85
     ocr_min_pixel_std: float = 10.0
+    detect_shapes_circle_circularity: float = 0.82
+    detect_shapes_ellipse_circularity: float = 0.65
+    detect_shapes_circle_eccentricity: float = 0.85
+    detect_shapes_ellipse_eccentricity_min: float = 0.50
+    detect_shapes_rect_fill_min: float = 0.88
+    detect_shapes_rect_solidity_min: float = 0.90
+    detect_shapes_triangle_solidity_min: float = 0.45
+    detect_shapes_star_solidity_max: float = 0.55
+    detect_shapes_polygon_solidity_min: float = 0.80
 
 
 _PROFILE_THRESHOLD_OVERRIDES = {

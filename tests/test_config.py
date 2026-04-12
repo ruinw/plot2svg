@@ -33,6 +33,8 @@ class PipelineConfigTest(unittest.TestCase):
 
         self.assertIsInstance(config.thresholds, ThresholdConfig)
         self.assertEqual(config.thresholds.graph_monster_stroke_width, 15.0)
+        self.assertEqual(config.thresholds.detect_shapes_circle_circularity, 0.82)
+        self.assertEqual(config.thresholds.detect_shapes_rect_fill_min, 0.88)
         self.assertEqual(config.thresholds.stroke_sane_canvas_span_ratio, 0.8)
         self.assertEqual(config.thresholds.stroke_min_polyline_length, 15.0)
         self.assertEqual(config.thresholds.detect_structure_box_aspect_max, 6.0)

@@ -6,6 +6,7 @@ import unittest
 import cv2
 import numpy as np
 
+from plot2svg.config import ThresholdConfig
 from plot2svg.detect_shapes import (
     SHAPE_CIRCLE,
     SHAPE_ELLIPSE,
@@ -68,6 +69,16 @@ class ClassifyContourTest(unittest.TestCase):
     def test_triangle_contour_classified_as_triangle(self) -> None:
         contour = _make_triangle_contour()
         self.assertEqual(classify_contour(contour), SHAPE_TRIANGLE)
+
+    def test_rectangle_classification_respects_custom_thresholds(self) -> None:
+        contour = _make_rect_contour()
+        thresholds = ThresholdConfig(detect_shapes_rect_fill_min=1.1)
+        self.assertEqual(classify_contour(contour, thresholds=thresholds), SHAPE_IRREGULAR)
+
+    def test_triangle_classification_respects_custom_thresholds(self) -> None:
+        contour = _make_triangle_contour()
+        thresholds = ThresholdConfig(detect_shapes_triangle_solidity_min=1.1)
+        self.assertEqual(classify_contour(contour, thresholds=thresholds), SHAPE_IRREGULAR)
 
     def test_irregular_contour_fallback(self) -> None:
         contour = _make_irregular_contour()
