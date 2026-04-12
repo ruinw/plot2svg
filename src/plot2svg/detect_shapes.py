@@ -7,6 +7,8 @@ import math
 import cv2
 import numpy as np
 
+from .config import ThresholdConfig
+
 # ---------------------------------------------------------------------------
 # Shape type constants
 # ---------------------------------------------------------------------------
@@ -34,9 +36,10 @@ _SOLIDITY_STAR_MAX = 0.55
 _SOLIDITY_POLYGON = 0.80
 
 
-def classify_contour(contour: np.ndarray) -> str:
+def classify_contour(contour: np.ndarray, thresholds: ThresholdConfig | None = None) -> str:
     """Classify a contour into a geometric shape type."""
 
+    thresholds = thresholds or ThresholdConfig()
     area = cv2.contourArea(contour)
     if area < 16:
         return SHAPE_IRREGULAR
@@ -63,17 +66,17 @@ def classify_contour(contour: np.ndarray) -> str:
     rect_fill = area / rect_area
 
     # Decision tree — ordered by priority
-    if circularity >= _CIRCULARITY_CIRCLE and eccentricity >= _ECCENTRICITY_CIRCLE and vertex_count >= 6:
+    if circularity >= thresholds.detect_shapes_circle_circularity and eccentricity >= thresholds.detect_shapes_circle_eccentricity and vertex_count >= 6:
         return SHAPE_CIRCLE
-    if circularity >= _CIRCULARITY_ELLIPSE and _ECCENTRICITY_ELLIPSE_LO <= eccentricity < _ECCENTRICITY_CIRCLE and vertex_count >= 5:
+    if circularity >= thresholds.detect_shapes_ellipse_circularity and thresholds.detect_shapes_ellipse_eccentricity_min <= eccentricity < thresholds.detect_shapes_circle_eccentricity and vertex_count >= 5:
         return SHAPE_ELLIPSE
-    if vertex_count == 4 and rect_fill >= _RECT_FILL_MIN and solidity >= _SOLIDITY_RECT:
+    if vertex_count == 4 and rect_fill >= thresholds.detect_shapes_rect_fill_min and solidity >= thresholds.detect_shapes_rect_solidity_min:
         return SHAPE_RECTANGLE
-    if vertex_count == 3 and solidity >= _SOLIDITY_TRIANGLE:
+    if vertex_count == 3 and solidity >= thresholds.detect_shapes_triangle_solidity_min:
         return SHAPE_TRIANGLE
-    if solidity < _SOLIDITY_STAR_MAX and vertex_count >= 8:
+    if solidity < thresholds.detect_shapes_star_solidity_max and vertex_count >= 8:
         return SHAPE_STAR
-    if 5 <= vertex_count <= 8 and solidity >= _SOLIDITY_POLYGON:
+    if 5 <= vertex_count <= 8 and solidity >= thresholds.detect_shapes_polygon_solidity_min:
         return SHAPE_POLYGON
     return SHAPE_IRREGULAR
 
@@ -174,10 +177,11 @@ def contour_to_svg_element(
     stroke: str,
     shape_hint: str | None = None,
     fill_opacity: float | None = None,
+    thresholds: ThresholdConfig | None = None,
 ) -> tuple[str, str]:
     """Convert a contour to an SVG element, returning (svg_fragment, shape_type)."""
 
-    shape = shape_hint if shape_hint else classify_contour(contour)
+    shape = shape_hint if shape_hint else classify_contour(contour, thresholds=thresholds)
 
     if shape == SHAPE_CIRCLE:
         (cx, cy), radius = cv2.minEnclosingCircle(contour)
