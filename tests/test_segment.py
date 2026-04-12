@@ -12,7 +12,7 @@ from plot2svg.segment import (
     propose_components,
     resolve_proposal_max_side,
 )
-from plot2svg.config import PipelineConfig
+from plot2svg.config import PipelineConfig, ThresholdConfig
 from plot2svg.text_layers import separate_text_graphics
 
 
@@ -30,6 +30,13 @@ class SegmentTest(unittest.TestCase):
     def test_classify_component_role_detects_text_like_shapes(self) -> None:
         role = classify_component_role(width=120, height=18, area=1200)
         self.assertEqual(role, "text_like")
+
+    def test_classify_component_role_respects_custom_text_like_thresholds(self) -> None:
+        thresholds = ThresholdConfig(segment_text_like_min_aspect_ratio=8.0)
+
+        role = classify_component_role(width=120, height=18, area=1200, thresholds=thresholds)
+
+        self.assertEqual(role, "region")
 
     def test_propose_components_creates_multiple_component_candidates(self) -> None:
         output_dir = Path("outputs/test-segment")
@@ -54,6 +61,16 @@ class SegmentTest(unittest.TestCase):
         ]
         compressed = compress_proposals(proposals, image_width=160, image_height=160)
         self.assertEqual(len(compressed), 2)
+
+    def test_compress_proposals_respects_custom_min_area_thresholds(self) -> None:
+        proposals = [
+            ComponentProposal("region-001", [0, 0, 10, 10], "masks/a.png", "region", 0.8),
+        ]
+        thresholds = ThresholdConfig(segment_min_area_region_abs=200, segment_min_area_region_ratio=0.001)
+
+        compressed = compress_proposals(proposals, image_width=100, image_height=100, thresholds=thresholds)
+
+        self.assertEqual(compressed, [])
 
     def test_split_component_mask_separates_touching_blobs(self) -> None:
         from plot2svg import segment as segment_module
