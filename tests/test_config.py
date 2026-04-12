@@ -41,6 +41,8 @@ class PipelineConfigTest(unittest.TestCase):
         self.assertEqual(config.thresholds.graph_obstacle_text_padding, 20)
         self.assertEqual(config.thresholds.graph_partial_repair_min_length, 60.0)
         self.assertEqual(config.thresholds.graph_direct_snap_node_min, 24.0)
+        self.assertEqual(config.thresholds.ocr_early_exit_confidence, 0.85)
+        self.assertEqual(config.thresholds.ocr_min_pixel_std, 10.0)
 
 
 if __name__ == "__main__":

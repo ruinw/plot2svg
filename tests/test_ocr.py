@@ -6,6 +6,7 @@ from unittest.mock import patch, MagicMock
 import cv2
 import numpy as np
 
+from plot2svg.config import PipelineConfig, ThresholdConfig
 from plot2svg.ocr import (
     _EARLY_EXIT_CONFIDENCE,
     _MIN_PIXEL_STD,
@@ -224,6 +225,23 @@ class OcrTest(unittest.TestCase):
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         self.assertGreater(np.std(gray), _MIN_PIXEL_STD)
 
+    def test_custom_pixel_std_threshold_allows_low_variance_crop(self) -> None:
+        image = np.full((60, 160, 3), 250, dtype=np.uint8)
+        image[20:40, 20:140] = 245
+        cfg = PipelineConfig(
+            input_path="picture/F2.png",
+            output_dir="outputs/F2",
+            thresholds=ThresholdConfig(ocr_min_pixel_std=0.1),
+        )
+
+        with patch("plot2svg.ocr._get_ocr_engine_full") as mock_get:
+            mock_engine = MagicMock()
+            mock_engine.return_value = ([([0, 0, 100, 30], "SOFT", 0.95)], None)
+            mock_get.return_value = mock_engine
+            result = _read_text_from_bbox(image, [0, 0, 160, 60], cfg=cfg)
+
+        self.assertEqual(result, "SOFT")
+
     def test_early_exit_reduces_engine_calls(self) -> None:
         """Optimization 2: high-confidence first variant should skip remaining variants."""
         call_count = 0
@@ -245,6 +263,32 @@ class OcrTest(unittest.TestCase):
 
         self.assertIsNotNone(result)
         self.assertEqual(call_count, 1)  # only 1 variant processed, not 3
+
+    def test_custom_early_exit_threshold_reduces_engine_calls(self) -> None:
+        call_count = 0
+        medium_conf_result = [([0, 0, 100, 30], "HELLO", 0.80)]
+
+        def fake_engine(variant):
+            nonlocal call_count
+            call_count += 1
+            return medium_conf_result, None
+
+        image = np.full((80, 200, 3), 255, dtype=np.uint8)
+        cv2.putText(image, "HELLO", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+        cfg = PipelineConfig(
+            input_path="picture/F2.png",
+            output_dir="outputs/F2",
+            thresholds=ThresholdConfig(ocr_early_exit_confidence=0.75),
+        )
+
+        with patch("plot2svg.ocr._get_ocr_engine_full") as mock_get:
+            mock_engine = MagicMock()
+            mock_engine.side_effect = fake_engine
+            mock_get.return_value = mock_engine
+            result = _read_text_from_bbox(image, [0, 0, 200, 80], cfg=cfg)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(call_count, 1)
 
     def test_populate_parallel_matches_serial(self) -> None:
         """Optimization 5: parallel results should match serial execution."""
@@ -272,13 +316,15 @@ class OcrTest(unittest.TestCase):
         texts = [n.text_content for n in text_nodes if n.text_content]
         self.assertTrue(len(texts) >= 1)
 
-    def test_early_exit_confidence_constant(self) -> None:
-        """Verify the early exit confidence threshold is set correctly."""
-        self.assertEqual(_EARLY_EXIT_CONFIDENCE, 0.85)
+    def test_early_exit_confidence_matches_default_threshold_config(self) -> None:
+        """Verify the early-exit default still matches the config baseline."""
+        cfg = PipelineConfig(input_path=Path("picture/F2.png"), output_dir=Path("outputs/F2"))
+        self.assertEqual(_EARLY_EXIT_CONFIDENCE, cfg.thresholds.ocr_early_exit_confidence)
 
-    def test_min_pixel_std_constant(self) -> None:
-        """Verify the pixel variance threshold is set correctly."""
-        self.assertEqual(_MIN_PIXEL_STD, 10.0)
+    def test_min_pixel_std_matches_default_threshold_config(self) -> None:
+        """Verify the pixel-std default still matches the config baseline."""
+        cfg = PipelineConfig(input_path=Path("picture/F2.png"), output_dir=Path("outputs/F2"))
+        self.assertEqual(_MIN_PIXEL_STD, cfg.thresholds.ocr_min_pixel_std)
 
 
 if __name__ == "__main__":
