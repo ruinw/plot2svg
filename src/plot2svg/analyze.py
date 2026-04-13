@@ -8,6 +8,8 @@ from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 import numpy as np
 
+from .config import PipelineConfig, ThresholdConfig
+
 
 @dataclass(slots=True)
 class AnalysisResult:
@@ -30,10 +32,11 @@ class AnalysisResult:
         path.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
 
 
-def analyze_image(path: Path) -> AnalysisResult:
+def analyze_image(path: Path, cfg: PipelineConfig | None = None) -> AnalysisResult:
     """Read the image header and choose an initial routing strategy."""
 
     image_path = Path(path)
+    thresholds = _analyze_thresholds(cfg)
     width, height, alpha_present = _read_image_metadata(image_path)
     aspect_ratio = width / height if height else 0.0
     file_size = image_path.stat().st_size
@@ -42,7 +45,13 @@ def analyze_image(path: Path) -> AnalysisResult:
     color_complexity = min(file_size / pixel_count, 1.0)
     edge_density = min((width + height) / pixel_count * 8.0, 1.0)
 
-    route_type = _choose_route(image_path=image_path, width=width, height=height, aspect_ratio=aspect_ratio)
+    route_type = _choose_route(
+        image_path=image_path,
+        width=width,
+        height=height,
+        aspect_ratio=aspect_ratio,
+        thresholds=thresholds,
+    )
     should_tile = width >= 4096 or height >= 4096 or pixel_count >= 10_000_000
     should_super_resolve = route_type in {"small_lowres", "signature_lineart"} and max(width, height) < 1400
 
@@ -59,20 +68,44 @@ def analyze_image(path: Path) -> AnalysisResult:
     )
 
 
-def _choose_route(image_path: Path, width: int, height: int, aspect_ratio: float) -> str:
+def _analyze_thresholds(cfg: PipelineConfig | None) -> ThresholdConfig:
+    """Resolve analyze thresholds from pipeline configuration."""
+
+    if cfg is not None and cfg.thresholds is not None:
+        return cfg.thresholds
+    return ThresholdConfig()
+
+
+def _choose_route(
+    image_path: Path,
+    width: int,
+    height: int,
+    aspect_ratio: float,
+    thresholds: ThresholdConfig | None = None,
+) -> str:
+    thresholds = thresholds or ThresholdConfig()
     stem = image_path.stem.lower()
-    if ("signature" in stem or "sign" in stem) and _looks_like_signature_lineart(image_path):
+    if ("signature" in stem or "sign" in stem) and _looks_like_signature_lineart(image_path, thresholds=thresholds):
         return "signature_lineart"
-    if width >= 3000 and aspect_ratio >= 2.4:
+    if (
+        width >= thresholds.analyze_route_wide_min_width
+        and aspect_ratio >= thresholds.analyze_route_wide_min_aspect_ratio
+    ):
         return "wide_hires"
-    if max(width, height) <= 900:
+    if max(width, height) <= thresholds.analyze_route_small_max_side:
         return "small_lowres"
     return "flat_graphics"
 
 
-def _looks_like_signature_lineart(path: Path) -> bool:
+def _looks_like_signature_lineart(
+    path: Path,
+    thresholds: ThresholdConfig | None = None,
+) -> bool:
+    thresholds = thresholds or ThresholdConfig()
     with Image.open(path) as image:
-        rgb = image.convert("RGB").resize((256, 256))
+        rgb = image.convert("RGB").resize(
+            (thresholds.analyze_signature_resize_side, thresholds.analyze_signature_resize_side)
+        )
         arr = np.asarray(rgb, dtype=np.uint8)
 
     maxc = arr.max(axis=2).astype(np.float32)
@@ -81,9 +114,12 @@ def _looks_like_signature_lineart(path: Path) -> bool:
     nonzero = maxc > 0
     saturation[nonzero] = (maxc[nonzero] - minc[nonzero]) / maxc[nonzero] * 255.0
     gray = arr.mean(axis=2)
-    dark_ratio = float(np.mean(gray < 220))
+    dark_ratio = float(np.mean(gray < thresholds.analyze_signature_dark_threshold))
     p95_saturation = float(np.percentile(saturation, 95))
-    return p95_saturation <= 64.0 and dark_ratio <= 0.18
+    return (
+        p95_saturation <= thresholds.analyze_signature_p95_saturation_max
+        and dark_ratio <= thresholds.analyze_signature_dark_ratio_max
+    )
 
 
 def _read_image_metadata(path: Path) -> tuple[int, int, bool]:

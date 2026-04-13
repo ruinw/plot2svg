@@ -108,7 +108,7 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     _configure_cv_runtime_stability()
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
 
-    analysis = analyze_image(cfg.input_path)
+    analysis = analyze_image(cfg.input_path, cfg=cfg)
     analyze_path = cfg.output_dir / "analyze.json"
     analysis.write_json(analyze_path)
 
