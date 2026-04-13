@@ -84,6 +84,18 @@ def vectorize_regions(
             continue
 
         region_obj = object_map.get(node.id)
+        if region_obj is not None:
+            geometry_fragment = _render_region_geometry_fragment(node.id, region_obj)
+            if geometry_fragment is not None:
+                results.append(
+                    RegionVectorResult(
+                        component_id=node.id,
+                        svg_fragment=geometry_fragment,
+                        path_count=1,
+                        simplified=False,
+                    )
+                )
+                continue
         if region_obj is not None and region_obj.outer_path:
             commands = [region_obj.outer_path, *region_obj.holes]
             fill_attr = (
@@ -120,6 +132,39 @@ def vectorize_regions(
             )
         )
     return results
+
+
+def _render_region_geometry_fragment(component_id: str, region_obj) -> str | None:
+    metadata = region_obj.metadata or {}
+    fill = region_obj.fill or "none"
+    stroke = region_obj.stroke or "#000000"
+    fill_opacity = (
+        f" fill-opacity='{region_obj.fill_opacity:.3f}'"
+        if region_obj.fill_opacity is not None and region_obj.fill_opacity < 0.999
+        else ""
+    )
+    if metadata.get("shape_type") == "circle":
+        circle = metadata.get("circle") or {}
+        cx = float(circle.get("cx", 0.0))
+        cy = float(circle.get("cy", 0.0))
+        radius = float(circle.get("r", 0.0))
+        return (
+            f"<circle id='{component_id}-0' cx='{cx:.1f}' cy='{cy:.1f}' r='{radius:.1f}' "
+            f"fill='{fill}' stroke='{stroke}'{fill_opacity} />"
+        )
+    if metadata.get("shape_type") == "ellipse":
+        ellipse = metadata.get("ellipse") or {}
+        cx = float(ellipse.get("cx", 0.0))
+        cy = float(ellipse.get("cy", 0.0))
+        rx = float(ellipse.get("rx", 0.0))
+        ry = float(ellipse.get("ry", 0.0))
+        rotation = float(ellipse.get("rotation", 0.0))
+        transform = "" if abs(rotation) < 0.5 else f" transform='rotate({rotation:.1f} {cx:.1f} {cy:.1f})'"
+        return (
+            f"<ellipse id='{component_id}-0' cx='{cx:.1f}' cy='{cy:.1f}' rx='{rx:.1f}' ry='{ry:.1f}'"
+            f"{transform} fill='{fill}' stroke='{stroke}'{fill_opacity} />"
+        )
+    return None
 
 
 def _trace_region_crop(crop: np.ndarray, offset_x: int, offset_y: int, node: SceneNode) -> tuple[str, int]:

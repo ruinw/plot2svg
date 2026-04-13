@@ -559,6 +559,34 @@ class ExportSvgTest(unittest.TestCase):
         self.assertIn('<ellipse', svg_content)
         self.assertIn("data-shape-type='ellipse'", svg_content)
 
+    def test_export_svg_renders_circle_region_object(self) -> None:
+        output_dir = Path('outputs/test-export-circle-region')
+        graph = SceneGraph(
+            width=220,
+            height=180,
+            nodes=[],
+            region_objects=[
+                RegionObject(
+                    id='region-object-circle',
+                    node_id='region-circle',
+                    outer_path='M 0 0 Z',
+                    holes=[],
+                    fill='#dde8ff',
+                    stroke='#556677',
+                    metadata={
+                        'shape_type': 'circle',
+                        'circle': {'cx': 110.0, 'cy': 90.0, 'r': 42.0},
+                    },
+                )
+            ],
+        )
+
+        export_result = export_svg(graph, [], [], output_dir)
+        svg_content = export_result.svg_path.read_text(encoding='utf-8')
+
+        self.assertIn('<circle', svg_content)
+        self.assertIn("data-shape-type='circle'", svg_content)
+
     def test_export_object_scene_graph_renders_circle_hint_container_as_ellipse(self) -> None:
         graph = SceneGraph(
             width=260,
