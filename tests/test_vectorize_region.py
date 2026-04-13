@@ -79,6 +79,52 @@ class VectorizeRegionTest(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertIn("<circle", results[0].svg_fragment)
 
+    def test_simple_filled_circle_region_prefers_circle_element(self) -> None:
+        image = np.full((140, 140, 3), 255, dtype=np.uint8)
+        cv2.circle(image, (70, 70), 42, (208, 176, 192), -1)
+        nodes = [
+            SceneNode(
+                id="region-filled-circle",
+                type="region",
+                bbox=[20, 20, 120, 120],
+                z_index=1,
+                vector_mode="region_path",
+                confidence=0.95,
+                fill="#c0b0d0",
+                stroke="#c0b0d0",
+                fill_opacity=0.55,
+            )
+        ]
+
+        results = vectorize_regions(image, nodes)
+
+        self.assertEqual(len(results), 1)
+        self.assertIn("<circle", results[0].svg_fragment)
+        self.assertNotIn("<path", results[0].svg_fragment)
+
+    def test_simple_filled_ellipse_region_prefers_ellipse_element(self) -> None:
+        image = np.full((160, 180, 3), 255, dtype=np.uint8)
+        cv2.ellipse(image, (90, 80), (58, 34), 18, 0, 360, (208, 176, 192), -1)
+        nodes = [
+            SceneNode(
+                id="region-filled-ellipse",
+                type="region",
+                bbox=[20, 20, 160, 140],
+                z_index=1,
+                vector_mode="region_path",
+                confidence=0.95,
+                fill="#c0b0d0",
+                stroke="#c0b0d0",
+                fill_opacity=0.55,
+            )
+        ]
+
+        results = vectorize_regions(image, nodes)
+
+        self.assertEqual(len(results), 1)
+        self.assertIn("<ellipse", results[0].svg_fragment)
+        self.assertNotIn("<path", results[0].svg_fragment)
+
 
     def test_black_icon_region_ignores_small_detached_roots_and_keeps_evenodd(self) -> None:
         image = np.full((200, 140, 3), 255, dtype=np.uint8)

@@ -131,9 +131,11 @@ def _trace_region(
     if len(root_indices) == 1:
         ellipse_meta = _fit_region_ellipse(mask, contours[primary_idx], descendant_contours, bbox)
     if ellipse_meta is not None:
+        shape_type = 'circle' if ellipse_meta.get('is_circle') else 'ellipse'
         return outer_path, holes, {
             'entity_valid': True,
-            'shape_type': 'ellipse',
+            'shape_type': shape_type,
+            'circle': ellipse_meta.get('circle'),
             'ellipse': ellipse_meta,
             'fit_error': ellipse_meta['fit_error'],
             'contrast_to_surround': validity['contrast_to_surround'],
@@ -259,7 +261,11 @@ def _fit_region_ellipse(
         hole_contours
         and len(hole_contours) <= 4
         and simple_hole_count == len(hole_contours)
-        and (hole_ratio >= 0.22 or largest_hole_ratio >= 0.12)
+        and (
+            hole_ratio >= 0.22
+            or largest_hole_ratio >= 0.12
+            or (len(hole_contours) >= 2 and hole_ratio >= 0.10)
+        )
     ):
         return None
 
@@ -316,6 +322,9 @@ def _fit_region_ellipse(
     if iou < 0.72 or not 0.62 <= area_ratio <= 1.2:
         return None
 
+    circle_like = abs(rx - ry) / max(rx, ry, 1.0) <= 0.08
+    circle_radius = (rx + ry) / 2.0
+
     return {
         'cx': round(float(cx + bbox[0]), 3),
         'cy': round(float(cy + bbox[1]), 3),
@@ -323,6 +332,12 @@ def _fit_region_ellipse(
         'ry': round(ry, 3),
         'rotation': round(float(angle), 3),
         'fit_error': round(fit_error, 4),
+        'is_circle': circle_like,
+        'circle': {
+            'cx': round(float(cx + bbox[0]), 3),
+            'cy': round(float(cy + bbox[1]), 3),
+            'r': round(circle_radius, 3),
+        } if circle_like else None,
     }
 
 

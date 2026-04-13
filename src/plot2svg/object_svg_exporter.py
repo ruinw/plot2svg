@@ -315,6 +315,15 @@ def _render_region_object(
     circle_hint_fragment = _render_circle_hint_region_object(region_obj, node_map, fill, stroke, fill_opacity)
     if circle_hint_fragment is not None:
         return circle_hint_fragment
+    if region_obj.metadata.get('shape_type') == 'circle':
+        circle = region_obj.metadata.get('circle') or {}
+        cx = float(circle.get('cx', 0.0))
+        cy = float(circle.get('cy', 0.0))
+        radius = float(circle.get('r', 0.0))
+        return (
+            f"<circle id='{region_obj.id}' class='region' data-node-id='{region_obj.node_id}' data-shape-type='circle' "
+            f"cx='{cx:.1f}' cy='{cy:.1f}' r='{radius:.1f}' fill='{fill}' stroke='{stroke}'{fill_opacity} />"
+        )
     if region_obj.metadata.get('shape_type') == 'ellipse':
         ellipse = region_obj.metadata.get('ellipse') or {}
         cx = float(ellipse.get('cx', 0.0))
