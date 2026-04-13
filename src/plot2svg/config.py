@@ -121,6 +121,13 @@ class ThresholdConfig:
     segment_min_area_text_ratio: float = 0.00007
     segment_min_area_region_abs: int = 96
     segment_min_area_region_ratio: float = 0.00018
+    analyze_route_wide_min_width: int = 3000
+    analyze_route_wide_min_aspect_ratio: float = 2.4
+    analyze_route_small_max_side: int = 900
+    analyze_signature_resize_side: int = 256
+    analyze_signature_dark_threshold: int = 220
+    analyze_signature_p95_saturation_max: float = 64.0
+    analyze_signature_dark_ratio_max: float = 0.18
 
 
 _PROFILE_THRESHOLD_OVERRIDES = {

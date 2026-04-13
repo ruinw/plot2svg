@@ -47,6 +47,8 @@ class PipelineConfigTest(unittest.TestCase):
         self.assertEqual(config.thresholds.ocr_min_pixel_std, 10.0)
         self.assertEqual(config.thresholds.segment_text_like_max_height, 28)
         self.assertEqual(config.thresholds.segment_min_area_region_abs, 96)
+        self.assertEqual(config.thresholds.analyze_route_wide_min_width, 3000)
+        self.assertEqual(config.thresholds.analyze_signature_dark_ratio_max, 0.18)
 
 
 if __name__ == "__main__":
