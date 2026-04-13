@@ -13,7 +13,7 @@ import numpy as np
 
 from .image_io import read_image, write_image
 
-from .config import PipelineConfig
+from .config import PipelineConfig, ThresholdConfig
 from .detect_shapes import SHAPE_CIRCLE, SHAPE_POLYGON, SHAPE_TRIANGLE, classify_contour
 from .gpu import gaussian_blur, resize, threshold
 
@@ -59,6 +59,7 @@ def propose_components(
 
     image = _load_color_image(image_input)
     text_image = image if text_image_input is None else _load_color_image(text_image_input)
+    thresholds = _segment_thresholds(cfg)
 
     original_height, original_width = image.shape[:2]
     resize_scale = get_proposal_resize_scale(original_width, original_height, cfg)
@@ -70,13 +71,27 @@ def propose_components(
             interpolation=cv2.INTER_AREA,
         )
 
-    records = _extract_records(working_image, resize_scale=resize_scale, text_only=False, min_area=20)
-    records.extend(_extract_records(text_image, resize_scale=1.0, text_only=True, min_area=10))
+    records = _extract_records(
+        working_image,
+        resize_scale=resize_scale,
+        text_only=False,
+        min_area=20,
+        thresholds=thresholds,
+    )
+    records.extend(
+        _extract_records(
+            text_image,
+            resize_scale=1.0,
+            text_only=True,
+            min_area=10,
+            thresholds=thresholds,
+        )
+    )
 
-    records = _compress_records(records, original_width, original_height)
+    records = _compress_records(records, original_width, original_height, thresholds=thresholds)
     records = _cluster_icon_candidate_records(records, original_width, original_height)
     proposals = _records_to_component_proposals(records, masks_dir)
-    proposals = compress_proposals(proposals, original_width, original_height)
+    proposals = compress_proposals(proposals, original_width, original_height, thresholds=thresholds)
     proposals = _limit_text_like_proposals(proposals, original_width, original_height)
     if cfg is None or cfg.enable_shape_detection:
         proposals = _inject_hough_circles(image, proposals, masks_dir, original_width, original_height, cfg)
@@ -84,6 +99,14 @@ def propose_components(
     _write_region_segmentation_debug(output_dir / "debug_region_segmentation.png", proposals, masks_dir, original_width, original_height)
     _write_components_json(output_dir / "components_raw.json", proposals)
     return proposals
+
+
+def _segment_thresholds(cfg: PipelineConfig | None) -> ThresholdConfig:
+    """Resolve segment thresholds from pipeline configuration."""
+
+    if cfg is not None and cfg.thresholds is not None:
+        return cfg.thresholds
+    return ThresholdConfig()
 
 
 def get_proposal_resize_scale(image_width: int, image_height: int, cfg: PipelineConfig | None = None) -> float:
@@ -108,6 +131,7 @@ def _extract_records(
     resize_scale: float,
     text_only: bool,
     min_area: int,
+    thresholds: ThresholdConfig,
 ) -> list[_ProposalRecord]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blur_kernel = (3, 3) if text_only else (5, 5)
@@ -135,7 +159,12 @@ def _extract_records(
         x, y, width, height, area = stats[label]
         if area < min_area:
             continue
-        proposal_type = "text_like" if text_only else classify_component_role(width, height, area)
+        proposal_type = "text_like" if text_only else classify_component_role(
+            width,
+            height,
+            area,
+            thresholds=thresholds,
+        )
         component_mask = np.where(labels == label, 255, 0).astype(np.uint8)
         component_masks = [component_mask]
         if not text_only and proposal_type == "region":
@@ -178,14 +207,16 @@ def compress_proposals(
     proposals: list[ComponentProposal],
     image_width: int,
     image_height: int,
+    thresholds: ThresholdConfig | None = None,
 ) -> list[ComponentProposal]:
     """Filter tiny fragments and merge highly overlapping proposals."""
 
+    thresholds = thresholds or ThresholdConfig()
     image_area = max(image_width * image_height, 1)
     filtered: list[ComponentProposal] = []
     for proposal in proposals:
         area = _bbox_area(proposal.bbox)
-        min_area = _min_component_area(proposal.proposal_type, image_area)
+        min_area = _min_component_area(proposal.proposal_type, image_area, thresholds=thresholds)
         if area < min_area:
             continue
         filtered.append(proposal)
@@ -201,23 +232,42 @@ def compress_proposals(
     return sorted(merged, key=lambda item: (item.proposal_type, item.bbox[1], item.bbox[0]))
 
 
-def classify_component_role(width: int, height: int, area: int) -> str:
+def classify_component_role(
+    width: int,
+    height: int,
+    area: int,
+    thresholds: ThresholdConfig | None = None,
+) -> str:
+    thresholds = thresholds or ThresholdConfig()
     bbox_area = max(width * height, 1)
     fill_ratio = area / bbox_area
     aspect_ratio = max(width, 1) / max(height, 1)
-    if height <= 28 and width >= 32 and fill_ratio > 0.28 and aspect_ratio >= 1.8:
+    if (
+        height <= thresholds.segment_text_like_max_height
+        and width >= thresholds.segment_text_like_min_width
+        and fill_ratio > thresholds.segment_text_like_min_fill_ratio
+        and aspect_ratio >= thresholds.segment_text_like_min_aspect_ratio
+    ):
         return "text_like"
-    if fill_ratio < 0.28 or min(width, height) < 14:
+    if (
+        fill_ratio < thresholds.segment_stroke_max_fill_ratio
+        or min(width, height) < thresholds.segment_stroke_min_side
+    ):
         return "stroke"
     return "region"
 
 
-def _min_component_area(proposal_type: str, image_area: int) -> int:
+def _min_component_area(
+    proposal_type: str,
+    image_area: int,
+    thresholds: ThresholdConfig | None = None,
+) -> int:
+    thresholds = thresholds or ThresholdConfig()
     if proposal_type == "stroke":
-        return max(32, int(image_area * 0.000045))
+        return max(thresholds.segment_min_area_stroke_abs, int(image_area * thresholds.segment_min_area_stroke_ratio))
     if proposal_type == "text_like":
-        return max(64, int(image_area * 0.00007))
-    return max(96, int(image_area * 0.00018))
+        return max(thresholds.segment_min_area_text_abs, int(image_area * thresholds.segment_min_area_text_ratio))
+    return max(thresholds.segment_min_area_region_abs, int(image_area * thresholds.segment_min_area_region_ratio))
 
 
 def _find_merge_target(existing: list[ComponentProposal], incoming: ComponentProposal) -> int | None:
@@ -451,12 +501,18 @@ def _infer_shape_hint(mask: np.ndarray) -> str | None:
     return None
 
 
-def _compress_records(records: list[_ProposalRecord], image_width: int, image_height: int) -> list[_ProposalRecord]:
+def _compress_records(
+    records: list[_ProposalRecord],
+    image_width: int,
+    image_height: int,
+    thresholds: ThresholdConfig | None = None,
+) -> list[_ProposalRecord]:
+    thresholds = thresholds or ThresholdConfig()
     image_area = max(image_width * image_height, 1)
     filtered = [
         record
         for record in records
-        if _bbox_area(record.bbox) >= _min_component_area(record.proposal_type, image_area)
+        if _bbox_area(record.bbox) >= _min_component_area(record.proposal_type, image_area, thresholds=thresholds)
     ]
 
     merged: list[_ProposalRecord] = []
@@ -817,6 +873,7 @@ def _inject_hough_circles(
 
     from .detect_shapes import detect_circles_hough
 
+    thresholds = _segment_thresholds(cfg)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     max_radius = max(min(width, height) // 4, 80)
     circles = detect_circles_hough(gray, min_radius=6, max_radius=max_radius)
@@ -824,7 +881,7 @@ def _inject_hough_circles(
         return proposals
 
     image_area = max(width * height, 1)
-    min_area = _min_component_area("region", image_area)
+    min_area = _min_component_area("region", image_area, thresholds=thresholds)
     injected: list[ComponentProposal] = []
 
     for cx, cy, r in circles:

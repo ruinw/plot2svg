@@ -45,6 +45,8 @@ class PipelineConfigTest(unittest.TestCase):
         self.assertEqual(config.thresholds.graph_direct_snap_node_min, 24.0)
         self.assertEqual(config.thresholds.ocr_early_exit_confidence, 0.85)
         self.assertEqual(config.thresholds.ocr_min_pixel_std, 10.0)
+        self.assertEqual(config.thresholds.segment_text_like_max_height, 28)
+        self.assertEqual(config.thresholds.segment_min_area_region_abs, 96)
 
 
 if __name__ == "__main__":

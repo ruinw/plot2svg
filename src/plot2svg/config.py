@@ -109,6 +109,18 @@ class ThresholdConfig:
     detect_shapes_triangle_solidity_min: float = 0.45
     detect_shapes_star_solidity_max: float = 0.55
     detect_shapes_polygon_solidity_min: float = 0.80
+    segment_text_like_max_height: int = 28
+    segment_text_like_min_width: int = 32
+    segment_text_like_min_fill_ratio: float = 0.28
+    segment_text_like_min_aspect_ratio: float = 1.8
+    segment_stroke_max_fill_ratio: float = 0.28
+    segment_stroke_min_side: int = 14
+    segment_min_area_stroke_abs: int = 32
+    segment_min_area_stroke_ratio: float = 0.000045
+    segment_min_area_text_abs: int = 64
+    segment_min_area_text_ratio: float = 0.00007
+    segment_min_area_region_abs: int = 96
+    segment_min_area_region_ratio: float = 0.00018
 
 
 _PROFILE_THRESHOLD_OVERRIDES = {
