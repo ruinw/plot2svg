@@ -295,16 +295,33 @@ def _render_node_fragment(
         x1, y1, x2, y2 = node.bbox
         font_size = max(y2 - y1 - 4, 10)
         baseline_y = y2
-        inner = (
-            f"<text id='{node.id}' x='{x1}' y='{baseline_y}' "
-            f"font-family='Arial' font-size='{font_size}' fill='{node.stroke or '#000000'}'>"
-            f"{escape(node.text_content)}</text>"
-        )
+        inner = _render_text_svg(node.id, x1, y1, y2, font_size, node.stroke or '#000000', node.text_content)
     else:
         return None
     role_attr = f" data-component-role='{node.component_role}'" if getattr(node, 'component_role', None) else ""
     shape_attr = f" data-shape-hint='{node.shape_hint}'" if getattr(node, 'shape_hint', None) else ""
     return f"<g id='{group_id}' data-node-type='{node.type}'{role_attr}{shape_attr}>{inner}</g>"
+
+
+def _render_text_svg(node_id: str, x1: int, y1: int, y2: int, font_size: int, fill: str, text_content: str) -> str:
+    lines = [line for line in text_content.splitlines() if line.strip()]
+    baseline_y = y2
+    if len(lines) <= 1:
+        return (
+            f"<text id='{node_id}' x='{x1}' y='{baseline_y}' "
+            f"font-family='Arial' font-size='{font_size}' fill='{fill}'>"
+            f"{escape(text_content)}</text>"
+        )
+    line_height = max((y2 - y1) / max(len(lines), 1), font_size * 0.95)
+    first_baseline = y1 + line_height
+    tspans = [f"<tspan x='{x1}' y='{first_baseline:.1f}'>{escape(lines[0])}</tspan>"]
+    for line in lines[1:]:
+        tspans.append(f"<tspan x='{x1}' dy='{line_height:.1f}'>{escape(line)}</tspan>")
+    return (
+        f"<text id='{node_id}' x='{x1}' y='{baseline_y}' "
+        f"font-family='Arial' font-size='{font_size}' fill='{fill}'>"
+        f"{''.join(tspans)}</text>"
+    )
 
 
 def _shape_attrs(

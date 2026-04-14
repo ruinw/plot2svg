@@ -140,6 +140,33 @@ class OcrTest(unittest.TestCase):
         self.assertIn("HELLO", text_node.text_content or "")
         self.assertIn("WORLD", text_node.text_content or "")
 
+    def test_read_text_from_bbox_preserves_multiline_breaks(self) -> None:
+        image = np.full((180, 360, 3), 255, dtype=np.uint8)
+        cv2.putText(image, "HELLO", (20, 65), cv2.FONT_HERSHEY_SIMPLEX, 1.6, (0, 0, 0), 3, cv2.LINE_AA)
+        cv2.putText(image, "WORLD", (20, 140), cv2.FONT_HERSHEY_SIMPLEX, 1.6, (0, 0, 0), 3, cv2.LINE_AA)
+
+        responses = [
+            ([], None),
+            ([], None),
+            ([], None),
+            [([0, 0, 100, 30], "HELLO", 0.90)],
+            [([0, 0, 100, 30], "WORLD", 0.90)],
+        ]
+
+        def fake_engine(_variant):
+            payload = responses.pop(0)
+            if isinstance(payload, tuple):
+                return payload
+            return payload, None
+
+        with patch("plot2svg.ocr._get_ocr_engine_full") as mock_get:
+            mock_engine = MagicMock()
+            mock_engine.side_effect = fake_engine
+            mock_get.return_value = mock_engine
+            result = _read_text_from_bbox(image, [10, 10, 300, 160])
+
+        self.assertEqual(result, "HELLO\nWORLD")
+
     def test_populate_text_nodes_accepts_loaded_image_array(self) -> None:
         image = np.full((120, 320, 3), 255, dtype=np.uint8)
         cv2.putText(image, "HELLO", (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 3, cv2.LINE_AA)
@@ -185,6 +212,22 @@ class OcrTest(unittest.TestCase):
         self.assertEqual(nodes[0].type, 'text')
         self.assertEqual(nodes[0].text_content, 'HELLO')
         self.assertEqual(nodes[0].bbox, [20, 20, 120, 48])
+
+    def test_extract_text_overlays_tightens_bbox_to_foreground(self) -> None:
+        image = np.full((120, 200, 3), 255, dtype=np.uint8)
+        cv2.rectangle(image, (60, 36), (110, 54), (0, 0, 0), -1)
+
+        with patch('plot2svg.ocr._get_ocr_engine_full') as mock_get:
+            mock_engine = MagicMock()
+            mock_engine.return_value = ([([ [20, 20], [140, 20], [140, 80], [20, 80] ], 'HELLO', 0.92)], None)
+            mock_get.return_value = mock_engine
+            nodes = extract_text_overlays(image)
+
+        self.assertEqual(len(nodes), 1)
+        self.assertGreater(nodes[0].bbox[0], 20)
+        self.assertLess(nodes[0].bbox[2], 140)
+        self.assertGreater(nodes[0].bbox[1], 20)
+        self.assertLess(nodes[0].bbox[3], 80)
 
     def test_inpaint_text_nodes_returns_mask_and_cleans_pixels(self) -> None:
         image = np.full((80, 180, 3), 255, dtype=np.uint8)
