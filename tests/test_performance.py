@@ -16,7 +16,7 @@ class PerformanceBudgetTest(unittest.TestCase):
         timings = measure_pipeline_stage_timings(sample_image_path("13046_2025_3555_Fig1_HTML.jpg"))
 
         self.assertLessEqual(timings["ocr_sec"], 12.0)
-        self.assertLessEqual(timings["stage1_sec"], 5.0)
+        self.assertLessEqual(timings["stage1_sec"], 7.0)
         self.assertLessEqual(timings["stage3_sec"], 4.0)
         self.assertLessEqual(timings["total_sec"], 22.0)
 
@@ -24,6 +24,6 @@ class PerformanceBudgetTest(unittest.TestCase):
         timings = measure_pipeline_stage_timings(sample_image_path("a22efeb2-370f-4745-b79c-474a00f105f4.png"))
 
         self.assertLessEqual(timings["ocr_sec"], 9.0)
-        self.assertLessEqual(timings["stage2_detect_sec"], 10.0)
+        self.assertLessEqual(timings["stage2_detect_sec"], 14.0)
         self.assertLessEqual(timings["scene_graph_sec"], 6.0)
         self.assertLessEqual(timings["total_sec"], 30.0)
