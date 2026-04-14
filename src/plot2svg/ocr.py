@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
 from pathlib import Path
 import re
 from typing import Union
@@ -16,6 +17,8 @@ from rapidocr_onnxruntime import RapidOCR
 
 from .config import PipelineConfig
 from .scene_graph import SceneGraph, SceneNode
+
+logger = logging.getLogger(__name__)
 
 
 _OCR_ENGINE_FULL: RapidOCR | None = None
@@ -93,7 +96,7 @@ def extract_text_overlays(
     """Run OCR on the full image and return top-layer text overlay nodes."""
 
     image = _load_color_image(image_input)
-    result, _ = _get_ocr_engine_full()(image)
+    result, _ = _run_ocr_engine_full(image, "extract_text_overlays")
     if not result:
         return []
 
@@ -221,7 +224,7 @@ def _read_text_from_bbox(
         return None
     candidates: list[tuple[str, float]] = []
     for variant in _prepare_ocr_variants(crop, cfg):
-        result, _ = _get_ocr_engine_full()(variant)
+        result, _ = _run_ocr_engine_full(variant, "_read_text_from_bbox")
         new_candidates = _extract_ocr_candidates(result)
         candidates.extend(new_candidates)
         if any(conf >= thresholds.ocr_early_exit_confidence for _, conf in new_candidates):
@@ -389,6 +392,14 @@ def _get_ocr_engine_rec() -> RapidOCR:
     return _OCR_ENGINE_REC
 
 
+def _run_ocr_engine_full(image: np.ndarray, context: str):
+    try:
+        return _get_ocr_engine_full()(image)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("OCR failed in %s: %s", context, exc)
+        return [], None
+
+
 def _clamp_bbox(bbox: list[int], width: int, height: int) -> tuple[int, int, int, int]:
     x1, y1, x2, y2 = bbox
     x1 = max(0, min(x1, width - 1))
@@ -448,7 +459,7 @@ def _read_multiline_text(crop: np.ndarray) -> str | None:
         pad_top = max(top - 4, 0)
         pad_bottom = min(bottom + 4, crop.shape[0])
         line_crop = crop[pad_top:pad_bottom, :]
-        result, _ = _get_ocr_engine_full()(line_crop)
+        result, _ = _run_ocr_engine_full(line_crop, "_read_multiline_text")
         text = choose_best_ocr_text(_extract_ocr_candidates(result))
         if text:
             line_texts.append(normalize_ocr_text(text))

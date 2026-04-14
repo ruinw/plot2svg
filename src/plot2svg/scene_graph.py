@@ -203,6 +203,25 @@ class SceneGraph:
     raster_objects: list[RasterObject] = field(default_factory=list)
     graph_edges: list[GraphEdge] = field(default_factory=list)
 
+    def summary(self) -> dict[str, object]:
+        """Return summary counts for debugging and regression inspection."""
+
+        return {
+            "node_count": len(self.nodes),
+            "text_count": sum(1 for node in self.nodes if node.type == "text"),
+            "region_count": sum(1 for node in self.nodes if node.type == "region"),
+            "stroke_count": sum(1 for node in self.nodes if node.type == "stroke"),
+            "group_count": len(self.groups),
+            "relation_count": len(self.relations),
+            "object_count": len(self.objects),
+            "stroke_primitive_count": len(self.stroke_primitives),
+            "node_object_count": len(self.node_objects),
+            "region_object_count": len(self.region_objects),
+            "icon_object_count": len(self.icon_objects),
+            "raster_object_count": len(self.raster_objects),
+            "graph_edge_count": len(self.graph_edges),
+        }
+
     def to_dict(self) -> dict[str, object]:
         return {
             "width": self.width,
@@ -217,6 +236,7 @@ class SceneGraph:
             "icon_objects": [obj.to_dict() for obj in self.icon_objects],
             "raster_objects": [obj.to_dict() for obj in self.raster_objects],
             "graph_edges": [edge.to_dict() for edge in self.graph_edges],
+            "summary": self.summary(),
         }
 
     def write_json(self, path: Path) -> None:

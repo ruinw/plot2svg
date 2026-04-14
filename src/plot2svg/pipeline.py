@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from pathlib import Path
 import shutil
+import time
 
 import cv2
 import numpy as np
@@ -84,6 +86,8 @@ from .text_layers import separate_text_graphics, write_text_graphic_layers
 from .vectorize_region import vectorize_regions
 from .vectorize_stroke import vectorize_strokes
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass(slots=True)
 class PipelineArtifacts:
@@ -108,11 +112,15 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     _configure_cv_runtime_stability()
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
 
+    stage_started = _log_stage_start("Analysis")
     analysis = analyze_image(cfg.input_path, cfg=cfg)
     analyze_path = cfg.output_dir / "analyze.json"
     analysis.write_json(analyze_path)
+    _log_stage_complete("Analysis", stage_started)
 
+    stage_started = _log_stage_start("Enhancement")
     enhancement = enhance_image(cfg.input_path, analysis, cfg)
+    _log_stage_complete("Enhancement", stage_started)
     proposal_source, _vector_source, _vector_scale = _choose_processing_sources(
         cfg,
         analysis,
@@ -120,6 +128,7 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
         enhancement.scale_factor,
     )
 
+    stage_started = _log_stage_start("Text Extraction")
     base_image = _load_color_image(proposal_source)
     proposal_layers = separate_text_graphics(base_image)
     write_text_graphic_layers(cfg.output_dir, "proposal", proposal_layers)
@@ -128,19 +137,23 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     text_clean_image, text_mask = inpaint_text_nodes(base_image, text_nodes, padding=6)
     global_ignore_mask = text_mask.copy()
     resolved_graphics_mask = np.zeros_like(global_ignore_mask)
-    write_image(cfg.output_dir / 'debug_text_inpaint.png', text_clean_image)
+    _maybe_write_debug_image(cfg, cfg.output_dir / 'debug_text_inpaint.png', text_clean_image)
+    _log_stage_complete("Text Extraction", stage_started)
 
+    stage_started = _log_stage_start("Panel Detection")
     panel_nodes = _detect_panel_background_nodes(base_image, text_nodes, analysis.width, analysis.height)
     panel_mask = _mask_for_nodes(base_image, panel_nodes, padding=0, artifacts_dir=None)
     global_ignore_mask = _merge_masks(global_ignore_mask, panel_mask)
     resolved_graphics_mask = _merge_masks(resolved_graphics_mask, panel_mask)
     panel_clean_image = _heal_masked_stage_image(base_image, global_ignore_mask, kernel_size=7)
-    write_image(cfg.output_dir / 'debug_panels_erased.png', panel_clean_image)
+    _maybe_write_debug_image(cfg, cfg.output_dir / 'debug_panels_erased.png', panel_clean_image)
     panel_arrow_nodes, panel_arrow_objects = _detect_panel_arrow_regions(base_image, panel_clean_image, panel_nodes)
     panel_arrow_mask = _mask_for_nodes(base_image, panel_arrow_nodes, padding=2, artifacts_dir=None)
     global_ignore_mask = _merge_masks(global_ignore_mask, panel_arrow_mask)
     resolved_graphics_mask = _merge_masks(resolved_graphics_mask, panel_arrow_mask)
+    _log_stage_complete("Panel Detection", stage_started)
 
+    stage_started = _log_stage_start("Stage 1")
     vector_layers = separate_text_graphics(panel_clean_image)
     write_text_graphic_layers(cfg.output_dir, "vector", vector_layers)
 
@@ -164,8 +177,10 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     )
     global_ignore_mask = _merge_masks(global_ignore_mask, node_mask)
     resolved_graphics_mask = _merge_masks(resolved_graphics_mask, node_mask)
-    write_image(cfg.output_dir / 'debug_nodes_inpaint.png', node_clean_image)
+    _maybe_write_debug_image(cfg, cfg.output_dir / 'debug_nodes_inpaint.png', node_clean_image)
+    _log_stage_complete("Stage 1", stage_started)
 
+    stage_started = _log_stage_start("Stage 2")
     stage2_layers = separate_text_graphics(node_clean_image)
     stage2_graph = enrich_region_styles(
         base_image,
@@ -177,7 +192,7 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
         stage2_stroke_graph,
         1.0,
         cfg=cfg,
-        debug_mask_path=cfg.output_dir / 'debug_lines_mask.png',
+        debug_mask_path=_maybe_debug_mask_path(cfg, cfg.output_dir / 'debug_lines_mask.png'),
     )
 
     stroke_clean_image, stroke_mask = _inpaint_stroke_regions(
@@ -189,8 +204,10 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     )
     global_ignore_mask = _merge_masks(global_ignore_mask, stroke_mask)
     resolved_graphics_mask = _merge_masks(resolved_graphics_mask, stroke_mask)
-    write_image(cfg.output_dir / 'debug_strokes_inpaint.png', stroke_clean_image)
+    _maybe_write_debug_image(cfg, cfg.output_dir / 'debug_strokes_inpaint.png', stroke_clean_image)
+    _log_stage_complete("Stage 2", stage_started)
 
+    stage_started = _log_stage_start("Stage 3")
     stage3_layers = separate_text_graphics(stroke_clean_image)
     stage3_graph = enrich_region_styles(
         base_image,
@@ -270,7 +287,9 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     )
     scene_graph = build_graph(scene_graph, cfg)
     scene_graph = refine_layout(scene_graph)
+    _log_stage_complete("Stage 3", stage_started)
 
+    stage_started = _log_stage_start("Export")
     region_results = vectorize_regions(stage3_layers.graphic_layer, scene_graph.nodes, 1.0)
     stroke_results = vectorize_strokes(stage2_layers.graphic_layer, scene_graph.nodes, 1.0)
     scene_graph_path = cfg.output_dir / 'scene_graph.json'
@@ -282,6 +301,7 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
         cfg.output_dir,
         preview_source_path=enhancement.image_path,
     )
+    _log_stage_complete("Export", stage_started)
 
     return PipelineArtifacts(
         analyze_path=analyze_path,
@@ -289,6 +309,27 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
         scene_graph_path=scene_graph_path,
         final_svg_path=svg_export.svg_path,
     )
+
+
+def _log_stage_start(name: str) -> float:
+    logger.info("Stage: %s", name)
+    return time.perf_counter()
+
+
+def _log_stage_complete(name: str, started_at: float) -> None:
+    logger.info("Stage complete: %s (%.2fs)", name, time.perf_counter() - started_at)
+
+
+def _maybe_write_debug_image(cfg: PipelineConfig, path: Path, image: np.ndarray) -> None:
+    if not cfg.emit_debug_artifacts:
+        return
+    write_image(path, image)
+
+
+def _maybe_debug_mask_path(cfg: PipelineConfig, path: Path) -> Path | None:
+    if not cfg.emit_debug_artifacts:
+        return None
+    return path
 
 
 def _proposals_for_stage(
