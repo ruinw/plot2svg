@@ -981,10 +981,22 @@ def _render_text_node(node: SceneNode) -> str | None:
     x1, y1, _x2, y2 = node.bbox
     font_size = max(y2 - y1 - 4, 10)
     baseline_y = y2
+    lines = [line for line in node.text_content.splitlines() if line.strip()]
+    if len(lines) <= 1:
+        return (
+            f"<text id='{node.id}' class='text' x='{x1}' y='{baseline_y}' "
+            f"font-family='Arial' font-size='{font_size}' fill='{node.stroke or '#000000'}'>"
+            f"{escape(node.text_content)}</text>"
+        )
+    line_height = max((y2 - y1) / max(len(lines), 1), font_size * 0.95)
+    first_baseline = y1 + line_height
+    tspans = [f"<tspan x='{x1}' y='{first_baseline:.1f}'>{escape(lines[0])}</tspan>"]
+    for line in lines[1:]:
+        tspans.append(f"<tspan x='{x1}' dy='{line_height:.1f}'>{escape(line)}</tspan>")
     return (
         f"<text id='{node.id}' class='text' x='{x1}' y='{baseline_y}' "
         f"font-family='Arial' font-size='{font_size}' fill='{node.stroke or '#000000'}'>"
-        f"{escape(node.text_content)}</text>"
+        f"{''.join(tspans)}</text>"
     )
 
 

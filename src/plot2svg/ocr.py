@@ -110,6 +110,7 @@ def extract_text_overlays(
         except (TypeError, ValueError):
             conf = 0.0
         bbox = _bbox_from_ocr_quad(quad, coordinate_scale)
+        bbox = _tighten_text_bbox(image, bbox)
         if bbox is None or _should_skip_overlay_bbox(bbox, cfg):
             continue
         nodes.append(
@@ -231,7 +232,7 @@ def _read_text_from_bbox(
         return normalize_ocr_text(text)
     line_text = _read_multiline_text(crop)
     if line_text:
-        return normalize_ocr_text(line_text)
+        return line_text
     if text:
         return normalize_ocr_text(text)
     return None
@@ -336,6 +337,30 @@ def _bbox_from_ocr_quad(quad: object, coordinate_scale: float) -> list[int] | No
     return [x1, y1, x2, y2]
 
 
+def _tighten_text_bbox(image: np.ndarray, bbox: list[int] | None) -> list[int] | None:
+    if bbox is None:
+        return None
+    x1, y1, x2, y2 = _clamp_bbox(bbox, image.shape[1], image.shape[0])
+    crop = image[y1:y2, x1:x2]
+    if crop.size == 0:
+        return [x1, y1, x2, y2]
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim == 3 else crop
+    foreground = gray < 245
+    if not np.any(foreground):
+        blackhat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, np.ones((5, 5), np.uint8))
+        foreground = blackhat > max(float(np.mean(blackhat) + np.std(blackhat) * 0.5), 8.0)
+    if not np.any(foreground):
+        return [x1, y1, x2, y2]
+    points = cv2.findNonZero(foreground.astype(np.uint8) * 255)
+    if points is None:
+        return [x1, y1, x2, y2]
+    bx, by, bw, bh = cv2.boundingRect(points)
+    tightened = _expand_bbox([x1 + bx, y1 + by, x1 + bx + bw, y1 + by + bh], image.shape[1], image.shape[0], 2)
+    if (tightened[2] - tightened[0]) <= 0 or (tightened[3] - tightened[1]) <= 0:
+        return [x1, y1, x2, y2]
+    return [tightened[0], tightened[1], tightened[2], tightened[3]]
+
+
 def _should_skip_overlay_bbox(bbox: list[int], cfg: PipelineConfig | None) -> bool:
     width = max(bbox[2] - bbox[0], 1)
     height = max(bbox[3] - bbox[1], 1)
@@ -426,10 +451,10 @@ def _read_multiline_text(crop: np.ndarray) -> str | None:
         result, _ = _get_ocr_engine_full()(line_crop)
         text = choose_best_ocr_text(_extract_ocr_candidates(result))
         if text:
-            line_texts.append(text)
+            line_texts.append(normalize_ocr_text(text))
     if not line_texts:
         return None
-    return normalize_ocr_text(" ".join(line_texts))
+    return "\n".join(line_texts)
 
 
 def _extract_ocr_candidates(result) -> list[tuple[str, float]]:

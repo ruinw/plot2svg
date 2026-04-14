@@ -56,6 +56,32 @@ class ExportSvgTest(unittest.TestCase):
         self.assertIn("data-component-role='labeled_region'", svg_content)
         self.assertIn("data-object-type='label_box'", svg_content)
 
+    def test_export_svg_renders_multiline_text_with_tspans(self) -> None:
+        output_dir = Path('outputs/test-export-multiline-text')
+        graph = SceneGraph(
+            width=180,
+            height=120,
+            nodes=[
+                SceneNode(
+                    id='text-multi',
+                    type='text',
+                    bbox=[20, 20, 140, 80],
+                    z_index=1,
+                    vector_mode='text_box',
+                    confidence=0.9,
+                    text_content='HELLO\nWORLD',
+                    stroke='#000000',
+                ),
+            ],
+        )
+
+        export_result = export_svg(graph, [], [], output_dir)
+        svg_content = export_result.svg_path.read_text(encoding='utf-8')
+
+        self.assertIn('<tspan', svg_content)
+        self.assertIn('HELLO', svg_content)
+        self.assertIn('WORLD', svg_content)
+
     def test_export_svg_injects_standard_arrow_marker_defs(self) -> None:
         output_dir = Path('outputs/test-export-arrow-marker-defs')
         graph = SceneGraph(
