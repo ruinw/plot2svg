@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 
 from plot2svg.config import PipelineConfig
-from plot2svg.pipeline import PipelineArtifacts, _assemble_scene_graph, _build_region_vector_ignore_mask, _choose_processing_sources, _collect_icon_cleanup_node_ids, _configure_cv_runtime_stability, _detect_container_detail_regions, _detect_panel_arrow_regions, _detect_raster_objects, _erase_region_nodes, _extract_icon_objects, _filter_region_objects, _filter_stroke_scene_graph, _heal_masked_stage_image, _inpaint_node_and_icon_regions, _inject_network_container_object, _inject_panel_background_regions, _promote_svg_template_nodes, _proposals_for_stage, _prune_region_nodes_by_mask, _resolve_semantic_raster_objects, _should_inpaint_stroke_node, run_pipeline
+from plot2svg.pipeline import PipelineArtifacts, _assemble_scene_graph, _build_region_vector_ignore_mask, _choose_processing_sources, _collect_icon_cleanup_node_ids, _configure_cv_runtime_stability, _detect_container_detail_regions, _detect_panel_arrow_regions, _detect_raster_objects, _erase_region_nodes, _extract_icon_objects, _filter_region_objects, _filter_stroke_scene_graph, _heal_masked_stage_image, _inpaint_node_and_icon_regions, _inject_network_container_object, _inject_panel_background_regions, _maybe_debug_mask_path, _maybe_write_debug_image, _promote_svg_template_nodes, _proposals_for_stage, _prune_region_nodes_by_mask, _resolve_semantic_raster_objects, _should_inpaint_stroke_node, run_pipeline
 from plot2svg.analyze import AnalysisResult
 from plot2svg.scene_graph import IconObject, NodeObject, RasterObject, RegionObject, SceneGraph, SceneNode
 
@@ -56,6 +56,21 @@ class PipelineTest(unittest.TestCase):
 
         self.assertEqual(cv2.getNumThreads(), 1)
         self.assertFalse(cv2.ocl.useOpenCL())
+
+    def test_maybe_write_debug_image_respects_emit_debug_artifacts_flag(self) -> None:
+        output_dir = Path("outputs/test-pipeline-debug-toggle")
+        image_path = output_dir / "debug.png"
+        image = np.full((10, 10, 3), 255, dtype=np.uint8)
+
+        cfg = PipelineConfig(input_path="picture/F2.png", output_dir=output_dir, emit_debug_artifacts=False)
+        _maybe_write_debug_image(cfg, image_path, image)
+
+        self.assertFalse(image_path.exists())
+
+    def test_maybe_debug_mask_path_returns_none_when_debug_disabled(self) -> None:
+        cfg = PipelineConfig(input_path="picture/F2.png", output_dir="outputs/F2", emit_debug_artifacts=False)
+
+        self.assertIsNone(_maybe_debug_mask_path(cfg, Path("outputs/F2/debug_lines_mask.png")))
 
     def test_collect_icon_cleanup_node_ids_includes_svg_template_regions(self) -> None:
         stage1_graph = SceneGraph(

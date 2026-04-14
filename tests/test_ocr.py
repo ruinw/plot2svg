@@ -333,6 +333,20 @@ class OcrTest(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(call_count, 1)
 
+    def test_read_text_from_bbox_logs_warning_on_ocr_exception(self) -> None:
+        image = np.full((80, 200, 3), 255, dtype=np.uint8)
+        cv2.putText(image, "HELLO", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 0), 2, cv2.LINE_AA)
+
+        with patch("plot2svg.ocr._get_ocr_engine_full") as mock_get:
+            mock_engine = MagicMock()
+            mock_engine.side_effect = RuntimeError("ocr failed")
+            mock_get.return_value = mock_engine
+            with self.assertLogs("plot2svg.ocr", level="WARNING") as logs:
+                result = _read_text_from_bbox(image, [0, 0, 200, 80])
+
+        self.assertIsNone(result)
+        self.assertIn("ocr failed", "\n".join(logs.output))
+
     def test_populate_parallel_matches_serial(self) -> None:
         """Optimization 5: parallel results should match serial execution."""
         image = np.full((200, 600, 3), 255, dtype=np.uint8)

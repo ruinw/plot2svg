@@ -162,6 +162,7 @@ class PipelineConfig:
     tile_size: int = 1024
     ocr_max_workers: int = 0
     enable_shape_detection: bool = True
+    emit_debug_artifacts: bool = True
     thresholds: ThresholdConfig | None = None
 
     def __post_init__(self) -> None:

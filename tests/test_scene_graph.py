@@ -119,6 +119,25 @@ class SceneGraphTest(unittest.TestCase):
         self.assertIn("raster_objects", payload)
         self.assertEqual(payload["raster_objects"][0]["image_href"], "data:image/png;base64,AAAA")
 
+    def test_scene_graph_serializes_summary_counts(self) -> None:
+        graph = SceneGraph(
+            width=100,
+            height=80,
+            nodes=[
+                SceneNode(id="background-root", type="background", bbox=[0, 0, 100, 80], z_index=0, vector_mode="region_path", confidence=1.0),
+                SceneNode(id="region-1", type="region", bbox=[0, 0, 10, 10], z_index=1, vector_mode="region_path", confidence=0.9),
+                SceneNode(id="stroke-1", type="stroke", bbox=[0, 0, 5, 5], z_index=2, vector_mode="stroke_path", confidence=0.8),
+                SceneNode(id="text-1", type="text", bbox=[10, 10, 40, 20], z_index=3, vector_mode="text_box", confidence=0.8, text_content="HELLO"),
+            ],
+        )
+
+        payload = graph.to_dict()
+
+        self.assertIn("summary", payload)
+        self.assertEqual(payload["summary"]["node_count"], 4)
+        self.assertEqual(payload["summary"]["text_count"], 1)
+        self.assertEqual(payload["summary"]["region_count"], 1)
+
     def test_build_scene_graph_adds_background_root(self) -> None:
         proposals = [
             ComponentProposal("region-000", [0, 0, 10, 10], "masks/r.png", "region", 0.9),
