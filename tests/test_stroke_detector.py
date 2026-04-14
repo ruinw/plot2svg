@@ -146,6 +146,40 @@ class StrokeDetectorTest(unittest.TestCase):
         area = abs(sum(pts[i][0] * pts[(i + 1) % 3][1] - pts[(i + 1) % 3][0] * pts[i][1] for i in range(3))) / 2.0
         self.assertLess(area, 120.0)
 
+    def test_detect_strokes_does_not_absorb_backward_facing_triangle(self) -> None:
+        image = np.full((120, 220), 220, dtype=np.uint8)
+        cv2.line(image, (25, 60), (150, 60), 60, 2)
+        triangle = np.array([[130, 60], [170, 50], [170, 70]], dtype=np.int32)
+        cv2.fillConvexPoly(image, triangle, 70)
+        graph = SceneGraph(
+            width=220,
+            height=120,
+            nodes=[
+                SceneNode(id='stroke-backward-arrow', type='stroke', bbox=[20, 40, 192, 80], z_index=1, vector_mode='stroke_path', confidence=0.9)
+            ],
+        )
+
+        primitives = detect_strokes(image, graph)
+
+        self.assertEqual(len(primitives), 1)
+        self.assertFalse(primitives[0].metadata.get('arrow_absorbed', False))
+
+    def test_detect_strokes_keeps_very_low_contrast_single_line_as_single_primitive(self) -> None:
+        image = np.tile(np.linspace(228, 236, 260, dtype=np.uint8), (120, 1))
+        cv2.line(image, (28, 66), (220, 48), 210, 1)
+        graph = SceneGraph(
+            width=260,
+            height=120,
+            nodes=[
+                SceneNode(id='stroke-very-low-contrast', type='stroke', bbox=[20, 30, 230, 82], z_index=1, vector_mode='stroke_path', confidence=0.9)
+            ],
+        )
+
+        primitives = detect_strokes(image, graph)
+
+        self.assertEqual(len(primitives), 1)
+        self.assertFalse(primitives[0].metadata.get('dense_reconstruction', False))
+
     def test_is_stroke_sane_rejects_global_span_hallucination(self) -> None:
         self.assertFalse(
             is_stroke_sane(

@@ -142,6 +142,7 @@ def _trace_stroke_crop(
             detector_mode = f'{detector_mode}+skeleton'
             used_skeleton = True
 
+    dense_attempted = _should_reconstruct_dense_lines(mask, trace_mask, used_skeleton, thresholds=thresholds)
     dense_primitives = _trace_dense_line_cluster(mask, trace_mask, bbox, detector_mode, used_skeleton, thresholds)
     if dense_primitives is not None:
         return dense_primitives, render_line_mask(trace_mask.shape, [
@@ -153,6 +154,8 @@ def _trace_stroke_crop(
             )
             for primitive in dense_primitives
         ])
+    if dense_attempted:
+        used_skeleton = False
 
     trace_coords = np.column_stack(np.where(trace_mask > 0))
     mask_coords = np.column_stack(np.where(mask > 0))
@@ -233,6 +236,8 @@ def _trace_dense_line_cluster(
     reconstruction = reconstruct_dense_lines(trace_mask)
     if reconstruction is None or len(reconstruction.lines) < 3:
         return None
+    if _looks_like_false_dense_hub(mask, reconstruction.lines):
+        return None
 
     x1, y1, _x2, _y2 = bbox
     total_length = sum(dense_line_length(line) for line in reconstruction.lines)
@@ -265,6 +270,27 @@ def _trace_dense_line_cluster(
     return primitives
 
 
+def _looks_like_false_dense_hub(mask: np.ndarray, lines: list[tuple[int, int, int, int]]) -> bool:
+    if len(lines) < 5:
+        return False
+    coords = np.column_stack(np.where(mask > 0))
+    if len(coords) < 2:
+        return False
+    y1, x1 = coords.min(axis=0)
+    y2, x2 = coords.max(axis=0)
+    width = int(x2 - x1 + 1)
+    height = int(y2 - y1 + 1)
+    aspect_ratio = max(width, 1) / max(height, 1)
+    if aspect_ratio < 4.0:
+        return False
+    lengths = [dense_line_length(line) for line in lines]
+    if not lengths:
+        return False
+    longest = max(lengths)
+    short_count = sum(length < longest * 0.5 for length in lengths)
+    return short_count >= len(lines) - 2
+
+
 def _should_reconstruct_dense_lines(
     mask: np.ndarray,
     trace_mask: np.ndarray,
@@ -289,6 +315,9 @@ def _should_reconstruct_dense_lines(
     if len(mask_coords) > thresholds.stroke_dense_max_mask_pixels or len(trace_coords) > thresholds.stroke_dense_max_trace_pixels:
         return False
     fill_ratio = float(len(mask_coords)) / max(float(width * height), 1.0)
+    aspect_ratio = max(width, 1) / max(height, 1)
+    if aspect_ratio >= 4.0 and fill_ratio <= 0.18:
+        return False
     return fill_ratio >= thresholds.stroke_dense_min_fill_ratio
 
 
@@ -568,13 +597,19 @@ def _detect_endpoint_triangle(
         if len(approx) != 3:
             continue
         vertices = approx.reshape(-1, 2).astype(np.float32)
+        angles = [_triangle_vertex_angle(vertices, index) for index in range(3)]
         centroid = vertices.mean(axis=0)
         if np.linalg.norm(centroid - local_tip) > max(width * 10.0, 28.0):
             continue
         projections = vertices @ direction
         tip_idx = int(np.argmax(projections))
+        acute_idx = int(np.argmin(angles))
+        if tip_idx != acute_idx or angles[tip_idx] > 100.0:
+            continue
         base = [vertices[index] for index in range(3) if index != tip_idx]
         tip = vertices[tip_idx]
+        if np.linalg.norm(tip - local_tip) > max(width * 3.0, 12.0):
+            continue
         tip_gain = float(projections[tip_idx] - np.mean([vertex @ direction for vertex in base]))
         if tip_gain < max(width * 1.2, 3.0):
             continue
@@ -587,6 +622,19 @@ def _detect_endpoint_triangle(
         if best is None or score > best[0]:
             best = (score, arrow)
     return best
+
+
+def _triangle_vertex_angle(vertices: np.ndarray, index: int) -> float:
+    current = vertices[index]
+    left = vertices[(index - 1) % 3] - current
+    right = vertices[(index + 1) % 3] - current
+    left_norm = float(np.linalg.norm(left))
+    right_norm = float(np.linalg.norm(right))
+    if left_norm <= 1e-6 or right_norm <= 1e-6:
+        return 180.0
+    cosine = float(np.dot(left, right) / (left_norm * right_norm))
+    cosine = max(-1.0, min(1.0, cosine))
+    return float(np.degrees(np.arccos(cosine)))
 
 
 def _anchor_arrow_to_region(
