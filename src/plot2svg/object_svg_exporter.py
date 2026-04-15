@@ -19,7 +19,7 @@ from .renderers.text_renderer import render_text_node as _render_text_node
 from .renderers.text_renderer import text_nodes as _text_nodes
 from .renderers.text_renderer import text_overlap_score as _text_overlap_score
 from .renderers.text_renderer import text_overlaps_template_exclusion as _text_overlaps_template_exclusion
-from .scene_graph import RegionObject, SceneGraph, SceneNode
+from .scene_graph import RegionObject, SceneGraph, SceneNode, SceneObject
 from .svg_templates import render_svg_template
 
 
@@ -62,6 +62,7 @@ def export_object_scene_graph(
     region_objects.sort(key=lambda item: _region_sort_key(item, node_map), reverse=True)
     emitted_template_groups: set[str] = set()
     template_text_exclusion_bboxes: list[list[int]] = []
+    fragments.extend(_render_network_container_backdrops(scene_graph, node_map, absorbed_region_ids))
     for region_obj in region_objects:
         if _should_skip_region_object_for_template_group(region_obj, node_map, template_groups):
             continue
@@ -142,6 +143,46 @@ def export_object_scene_graph(
             fragments.append(text_fragment)
 
     return fragments
+
+
+def _render_network_container_backdrops(
+    scene_graph: SceneGraph,
+    node_map: dict[str, SceneNode],
+    absorbed_region_ids: set[str],
+) -> list[str]:
+    fragments: list[str] = []
+    for obj in scene_graph.objects:
+        if obj.object_type != 'network_container':
+            continue
+        if any(node_id in absorbed_region_ids for node_id in obj.node_ids):
+            continue
+        fragments.append(_render_network_container_backdrop(obj, node_map))
+    return fragments
+
+
+def _render_network_container_backdrop(obj: SceneObject, node_map: dict[str, SceneNode]) -> str:
+    x1, y1, x2, y2 = obj.bbox
+    width = max(x2 - x1, 1)
+    height = max(y2 - y1, 1)
+    cx = x1 + width / 2.0
+    cy = y1 + height / 2.0
+    rx = max(width / 2.0, 1.0)
+    ry = max(height / 2.0, 1.0)
+    fill = _network_container_fill(obj, node_map)
+    return (
+        f"<ellipse id='{obj.id}-backdrop' class='region network-container-backdrop' "
+        f"data-object-id='{obj.id}' data-object-type='network_container' "
+        f"cx='{cx:.1f}' cy='{cy:.1f}' rx='{rx:.1f}' ry='{ry:.1f}' "
+        f"fill='{fill}' stroke='{fill}' fill-opacity='0.220' stroke-opacity='0.350' />"
+    )
+
+
+def _network_container_fill(obj: SceneObject, node_map: dict[str, SceneNode]) -> str:
+    for node_id in obj.node_ids:
+        node = node_map.get(node_id)
+        if node is not None and node.type == 'region' and node.fill and node.fill not in {'none', '#ffffff'}:
+            return node.fill
+    return '#d9e6f2'
 
 
 def _absorbed_region_ids(scene_graph: SceneGraph) -> set[str]:
