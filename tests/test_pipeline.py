@@ -404,6 +404,7 @@ class PipelineTest(unittest.TestCase):
         self.assertTrue(graph_data["graph_edges"])
         self.assertIn("class='edge'", svg_content)
         self.assertIn("class='node'", svg_content)
+        self.assertIn("data-object-type='network_container'", svg_content)
 
     def test_run_pipeline_writes_round12_debug_artifacts(self) -> None:
         config = PipelineConfig(

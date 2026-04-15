@@ -82,6 +82,35 @@ class ExportSvgTest(unittest.TestCase):
         self.assertIn('HELLO', svg_content)
         self.assertIn('WORLD', svg_content)
 
+    def test_export_svg_renders_network_container_object_backdrop(self) -> None:
+        output_dir = Path('outputs/test-export-network-container-backdrop')
+        graph = SceneGraph(
+            width=320,
+            height=220,
+            nodes=[
+                SceneNode(id='region-main', type='region', bbox=[80, 40, 260, 170], z_index=1, vector_mode='region_path', confidence=0.9, fill='#d9e6f2'),
+                SceneNode(id='circle-1', type='region', bbox=[120, 80, 140, 100], z_index=2, vector_mode='region_path', confidence=0.9, shape_hint='circle'),
+            ],
+            objects=[
+                SceneObject(
+                    id='object-region-main-network',
+                    object_type='network_container',
+                    bbox=[80, 40, 260, 170],
+                    node_ids=['region-main', 'circle-1'],
+                )
+            ],
+            node_objects=[
+                NodeObject(id='node-circle-1', node_id='circle-1', center=[130.0, 90.0], radius=10.0, fill='#5b8def')
+            ],
+        )
+
+        export_result = export_svg(graph, [], [], output_dir)
+        svg_content = export_result.svg_path.read_text(encoding='utf-8')
+
+        self.assertIn("data-object-type='network_container'", svg_content)
+        self.assertIn("<ellipse", svg_content)
+        self.assertLess(svg_content.index("data-object-type='network_container'"), svg_content.index("id='node-circle-1'"))
+
     def test_export_svg_injects_standard_arrow_marker_defs(self) -> None:
         output_dir = Path('outputs/test-export-arrow-marker-defs')
         graph = SceneGraph(
