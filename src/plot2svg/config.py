@@ -8,6 +8,8 @@ from pathlib import Path
 
 VALID_ENHANCEMENT_MODES = {"auto", "skip", "light", "sr_x2", "sr_x4"}
 VALID_EXECUTION_PROFILES = {"speed", "balanced", "quality"}
+VALID_SEGMENTATION_BACKENDS = {"opencv", "sam_local", "sam_api"}
+VALID_TEMPLATE_OPTIMIZATIONS = {"none", "deterministic"}
 
 
 @dataclass(slots=True)
@@ -157,6 +159,9 @@ class PipelineConfig:
     route_override: str | None = None
     enhancement_mode: str = "auto"
     execution_profile: str = "balanced"
+    segmentation_backend: str = "opencv"
+    emit_layout_template: bool = True
+    template_optimization: str = "deterministic"
     enable_sam2: bool = False
     enable_edge_model: bool = False
     tile_size: int = 1024
@@ -172,6 +177,10 @@ class PipelineConfig:
             raise ValueError(f"Unsupported enhancement mode: {self.enhancement_mode}")
         if self.execution_profile not in VALID_EXECUTION_PROFILES:
             raise ValueError(f"Unsupported execution profile: {self.execution_profile}")
+        if self.segmentation_backend not in VALID_SEGMENTATION_BACKENDS:
+            raise ValueError(f"Unsupported segmentation backend: {self.segmentation_backend}")
+        if self.template_optimization not in VALID_TEMPLATE_OPTIMIZATIONS:
+            raise ValueError(f"Unsupported template optimization: {self.template_optimization}")
         if self.tile_size <= 0:
             raise ValueError("tile_size must be positive")
         if self.ocr_max_workers < 0:

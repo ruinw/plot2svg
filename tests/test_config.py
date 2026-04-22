@@ -51,5 +51,24 @@ class PipelineConfigTest(unittest.TestCase):
         self.assertEqual(config.thresholds.analyze_signature_dark_ratio_max, 0.18)
 
 
+
+    def test_pipeline_config_defaults_to_opencv_segmentation_and_template_output(self) -> None:
+        config = PipelineConfig(input_path=Path("picture/F2.png"), output_dir=Path("outputs/F2"))
+        self.assertEqual(config.segmentation_backend, "opencv")
+        self.assertTrue(config.emit_layout_template)
+        self.assertEqual(config.template_optimization, "deterministic")
+
+
+    def test_pipeline_config_accepts_future_sam_backend_names(self) -> None:
+        config = PipelineConfig(input_path=Path("picture/F2.png"), output_dir=Path("outputs/F2"), segmentation_backend="sam_local")
+        self.assertEqual(config.segmentation_backend, "sam_local")
+    def test_pipeline_config_rejects_unsupported_segmentation_backend(self) -> None:
+        with self.assertRaises(ValueError):
+            PipelineConfig(input_path=Path("picture/F2.png"), output_dir=Path("outputs/F2"), segmentation_backend="unknown")
+
+    def test_pipeline_config_rejects_unsupported_template_optimization(self) -> None:
+        with self.assertRaises(ValueError):
+            PipelineConfig(input_path=Path("picture/F2.png"), output_dir=Path("outputs/F2"), template_optimization="magic")
+
 if __name__ == "__main__":
     unittest.main()

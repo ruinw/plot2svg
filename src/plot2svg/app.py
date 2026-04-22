@@ -53,14 +53,17 @@ def _convert_image(
     image_path: str | None,
     profile: str,
     enhancement_mode: str,
+    segmentation_backend: str,
+    template_optimization: str,
+    emit_layout_template: bool,
     ocr_threads: int,
-) -> tuple[str | None, str, str, str | None, str | None]:
+) -> tuple[str | None, str, dict, str, str | None, str | None, str | None]:
     """Run the pipeline and return artifacts for the Gradio UI.
 
-    Returns (preview_path, svg_html, scene_graph_json, svg_file, json_file).
+    Returns (preview_path, svg_html, scene_graph_json, template_html, svg_file, json_file, template_file).
     """
     if not image_path:
-        return None, "<p>Please upload an image first.</p>", "{}", None, None
+        return None, "<p>Please upload an image first.</p>", {}, "<p>No template available.</p>", None, None, None
 
     tmpdir = tempfile.mkdtemp(prefix="plot2svg_")
     try:
@@ -70,6 +73,9 @@ def _convert_image(
             execution_profile=profile.lower(),
             enhancement_mode=enhancement_mode.lower().replace(" ", "_"),
             ocr_max_workers=int(ocr_threads),
+            segmentation_backend=segmentation_backend,
+            template_optimization=template_optimization,
+            emit_layout_template=bool(emit_layout_template),
         )
         artifacts = run_pipeline(cfg)
 
@@ -84,18 +90,31 @@ def _convert_image(
             f"style='max-width:100%;height:auto;border:1px solid #ccc;' />"
         )
 
+        template_html = "<p>No template available.</p>"
+        template_dl = None
+        if artifacts.template_svg_path is not None and artifacts.template_svg_path.exists():
+            template_content = artifacts.template_svg_path.read_text(encoding="utf-8")
+            template_b64 = base64.b64encode(template_content.encode("utf-8")).decode("ascii")
+            template_html = (
+                f"<img src='data:image/svg+xml;base64,{template_b64}' "
+                f"style='max-width:100%;height:auto;border:1px solid #ccc;' />"
+            )
+
         # Persist download files outside tmpdir so Gradio can serve them.
         dl_dir = Path(tempfile.mkdtemp(prefix="plot2svg_dl_"))
         svg_dl = dl_dir / "output.svg"
         json_dl = dl_dir / "scene_graph.json"
         shutil.copy2(artifacts.final_svg_path, svg_dl)
         shutil.copy2(artifacts.scene_graph_path, json_dl)
+        if artifacts.template_svg_path is not None and artifacts.template_svg_path.exists():
+            template_dl = dl_dir / "template.svg"
+            shutil.copy2(artifacts.template_svg_path, template_dl)
 
-        return preview, svg_html, sg_data, str(svg_dl), str(json_dl)
+        return preview, svg_html, sg_data, template_html, str(svg_dl), str(json_dl), str(template_dl) if template_dl is not None else None
 
     except Exception as exc:
         error_html = f"<p style='color:red;'>Error: {exc}</p>"
-        return None, error_html, "{}", None, None
+        return None, error_html, {}, "<p>No template available.</p>", None, None, None
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +147,20 @@ def build_app():
                     value="auto",
                     label="Enhancement Mode",
                 )
+                backend_radio = gr.Radio(
+                    choices=["opencv", "sam_local", "sam_api"],
+                    value="opencv",
+                    label="Segmentation Backend",
+                )
+                template_optimization_radio = gr.Radio(
+                    choices=["none", "deterministic"],
+                    value="deterministic",
+                    label="Template Optimization",
+                )
+                emit_template_checkbox = gr.Checkbox(
+                    value=True,
+                    label="Emit template.svg",
+                )
                 ocr_threads_slider = gr.Slider(
                     minimum=0,
                     maximum=16,
@@ -146,15 +179,18 @@ def build_app():
                         svg_display = gr.HTML(label="SVG Output")
                     with gr.TabItem("Scene Graph"):
                         sg_json = gr.JSON(label="Scene Graph")
+                    with gr.TabItem("Template"):
+                        template_display = gr.HTML(label="Template")
 
                 with gr.Row():
                     svg_file = gr.File(label="Download SVG")
                     json_file = gr.File(label="Download JSON")
+                    template_file = gr.File(label="Download Template")
 
         convert_btn.click(
             fn=_convert_image,
-            inputs=[input_image, profile_radio, enhance_radio, ocr_threads_slider],
-            outputs=[preview_image, svg_display, sg_json, svg_file, json_file],
+            inputs=[input_image, profile_radio, enhance_radio, backend_radio, template_optimization_radio, emit_template_checkbox, ocr_threads_slider],
+            outputs=[preview_image, svg_display, sg_json, template_display, svg_file, json_file, template_file],
         )
 
         gr.Markdown(

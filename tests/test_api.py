@@ -1,4 +1,4 @@
-﻿import base64
+import base64
 import json
 from pathlib import Path
 import shutil
@@ -16,6 +16,8 @@ def _fake_artifacts(output_dir: Path) -> PipelineArtifacts:
     enhanced_path = output_dir / 'enhanced.png'
     scene_graph_path = output_dir / 'scene_graph.json'
     final_svg_path = output_dir / 'final.svg'
+    components_path = output_dir / 'components.json'
+    template_svg_path = output_dir / 'template.svg'
     analyze_path.write_text('{}', encoding='utf-8')
     enhanced_path.write_bytes(b'png')
     scene_graph_path.write_text(
@@ -23,11 +25,15 @@ def _fake_artifacts(output_dir: Path) -> PipelineArtifacts:
         encoding='utf-8',
     )
     final_svg_path.write_text("<svg><rect width='10' height='10'/></svg>", encoding='utf-8')
+    components_path.write_text(json.dumps({'version': 1, 'components': []}), encoding='utf-8')
+    template_svg_path.write_text('<svg></svg>', encoding='utf-8')
     return PipelineArtifacts(
         analyze_path=analyze_path,
         enhanced_path=enhanced_path,
         scene_graph_path=scene_graph_path,
         final_svg_path=final_svg_path,
+        components_path=components_path,
+        template_svg_path=template_svg_path,
     )
 
 
@@ -49,6 +55,34 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(result['status'], 'ok')
         self.assertIn('<svg', result['svg_content'])
         self.assertEqual(result['scene_graph']['nodes'][0]['id'], 'n1')
+        self.assertEqual(Path(result['artifacts']['components_path']).name, 'components.json')
+        self.assertEqual(Path(result['artifacts']['template_svg_path']).name, 'template.svg')
+
+    def test_engine_passes_template_and_segmentation_options_to_pipeline(self) -> None:
+        payload = base64.b64encode(b'fake-image').decode('ascii')
+        captured = {}
+
+        def fake_run(cfg):
+            captured['segmentation_backend'] = cfg.segmentation_backend
+            captured['template_optimization'] = cfg.template_optimization
+            captured['emit_layout_template'] = cfg.emit_layout_template
+            return _fake_artifacts(cfg.output_dir)
+
+        with patch('plot2svg.api.run_pipeline', side_effect=fake_run):
+            engine = Plot2SvgEngine(
+                temp_root=self.base_dir / '_tmp',
+                segmentation_backend='opencv',
+                template_optimization='none',
+                emit_layout_template=False,
+            )
+            result = engine.process_image(image_base64=payload, output_dir=self.base_dir / 'out')
+
+        self.assertEqual(result['status'], 'ok')
+        self.assertEqual(captured, {
+            'segmentation_backend': 'opencv',
+            'template_optimization': 'none',
+            'emit_layout_template': False,
+        })
 
     def test_process_image_accepts_base64_input(self) -> None:
         payload = base64.b64encode(b'fake-image').decode('ascii')

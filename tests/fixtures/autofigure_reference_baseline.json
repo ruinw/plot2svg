@@ -1,0 +1,16 @@
+{
+  "name": "synthetic-baseline",
+  "metrics": {
+    "node_count": 4,
+    "text_count": 1,
+    "region_count": 1,
+    "stroke_count": 1,
+    "icon_count": 1,
+    "raster_fallback_count": 1,
+    "graph_edge_count": 1,
+    "svg_text_count": 1,
+    "svg_shape_count": 3,
+    "svg_path_count": 1,
+    "svg_image_count": 1
+  }
+}

@@ -28,7 +28,7 @@ def _run_pipeline_isolated(config: PipelineConfig) -> PipelineArtifacts:
         "'analyze_path': str(artifacts.analyze_path), "
         "'enhanced_path': str(artifacts.enhanced_path), "
         "'scene_graph_path': str(artifacts.scene_graph_path), "
-        "'final_svg_path': str(artifacts.final_svg_path)}))"
+        "'final_svg_path': str(artifacts.final_svg_path), 'components_path': str(artifacts.components_path), 'template_svg_path': str(artifacts.template_svg_path)}))"
     )
     completed = subprocess.run(
         [sys.executable, "-X", "utf8", "-c", code, str(config.input_path), str(config.output_dir)],
@@ -44,6 +44,7 @@ def _run_pipeline_isolated(config: PipelineConfig) -> PipelineArtifacts:
         enhanced_path=Path(payload["enhanced_path"]),
         scene_graph_path=Path(payload["scene_graph_path"]),
         final_svg_path=Path(payload["final_svg_path"]),
+        components_path=Path(payload["components_path"]),
     )
 
 
@@ -286,6 +287,9 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(artifacts.enhanced_path.name, "enhanced.png")
         self.assertEqual(artifacts.scene_graph_path.name, "scene_graph.json")
         self.assertEqual(artifacts.final_svg_path.name, "final.svg")
+        self.assertIsNotNone(artifacts.components_path)
+        self.assertEqual(artifacts.components_path.name, "components.json")
+        self.assertTrue(artifacts.components_path.exists())
         self.assertTrue((config.output_dir / "proposal_text_mask.png").exists())
         self.assertTrue((config.output_dir / "proposal_graphic_layer.png").exists())
         self.assertTrue((config.output_dir / "vector_text_mask.png").exists())
@@ -296,6 +300,10 @@ class PipelineTest(unittest.TestCase):
         self.assertTrue(any(node["type"] == "region" for node in data["nodes"]))
         self.assertTrue(any(node["type"] == "stroke" for node in data["nodes"]))
         self.assertLessEqual(sum(1 for node in data["nodes"] if node.get("shape_hint") == "circle"), 6)
+        components = json.loads(artifacts.components_path.read_text(encoding="utf-8"))
+        self.assertEqual(components["version"], 1)
+        self.assertTrue(components["components"])
+        self.assertTrue(any(entry["display_id"].startswith(("REG", "TXT", "STK")) for entry in components["components"]))
 
     def test_small_lowres_pipeline_keeps_nodes_within_canvas_and_avoids_false_circles(self) -> None:
         config = PipelineConfig(input_path=Path("picture/orr_signature.png"), output_dir=Path("outputs/orr_signature"))

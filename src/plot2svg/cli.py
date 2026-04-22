@@ -6,7 +6,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from .config import PipelineConfig, VALID_EXECUTION_PROFILES
+from .config import PipelineConfig, VALID_EXECUTION_PROFILES, VALID_SEGMENTATION_BACKENDS, VALID_TEMPLATE_OPTIMIZATIONS
 from .pipeline import run_pipeline
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Enhancement mode for the pre-processing stage.",
     )
     parser.add_argument(
+        "--segmentation-backend",
+        default="opencv",
+        choices=sorted(VALID_SEGMENTATION_BACKENDS),
+        help="Component segmentation backend.",
+    )
+    parser.add_argument(
+        "--template-optimization",
+        default="deterministic",
+        choices=sorted(VALID_TEMPLATE_OPTIMIZATIONS),
+        help="Layout template optimization mode.",
+    )
+    parser.add_argument(
+        "--no-template",
+        dest="emit_layout_template",
+        action="store_false",
+        help="Skip writing template.svg.",
+    )
+    parser.set_defaults(emit_layout_template=True)
+    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable verbose logging and debug image output.",
@@ -50,11 +69,18 @@ def main() -> int:
         enhancement_mode=args.enhancement_mode,
         execution_profile=args.profile,
         emit_debug_artifacts=args.verbose,
+        segmentation_backend=args.segmentation_backend,
+        template_optimization=args.template_optimization,
+        emit_layout_template=args.emit_layout_template,
     )
     artifacts = run_pipeline(config)
     logger.info("analyze=%s", artifacts.analyze_path)
     logger.info("scene_graph=%s", artifacts.scene_graph_path)
     logger.info("final_svg=%s", artifacts.final_svg_path)
+    if getattr(artifacts, "components_path", None) is not None:
+        logger.info("components=%s", artifacts.components_path)
+    if getattr(artifacts, "template_svg_path", None) is not None:
+        logger.info("template_svg=%s", artifacts.template_svg_path)
     return 0
 
 

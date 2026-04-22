@@ -70,18 +70,22 @@ from .semantic_labeling import (
 )
 
 from .analyze import analyze_image
+from .component_manifest import build_component_manifest, write_component_manifest
 from .config import PipelineConfig
 from .enhance import enhance_image
 from .export_svg import export_svg
 from .graph_builder import build_graph
 from .node_detector import detect_nodes
 from .layout_refiner import refine_layout
+from .layout_template import write_layout_template_svg
 from .ocr import extract_text_overlays, inpaint_text_nodes
 from .detect_structure import detect_structures
 from .region_vectorizer import vectorize_region_objects
 from .scene_graph import IconObject, RasterObject, RegionObject, SceneGraph, SceneNode, SceneObject, build_object_instances, build_scene_graph, enrich_region_styles, promote_component_groups
-from .segment import ComponentProposal, propose_components
+from .segment import ComponentProposal
+from .segmentation_backend import get_segmentation_backend
 from .stroke_detector import detect_strokes
+from .template_optimizer import apply_template_optimization
 from .text_layers import separate_text_graphics, write_text_graphic_layers
 from .vectorize_region import vectorize_regions
 from .vectorize_stroke import vectorize_strokes
@@ -97,6 +101,8 @@ class PipelineArtifacts:
     enhanced_path: Path
     scene_graph_path: Path
     final_svg_path: Path
+    components_path: Path | None = None
+    template_svg_path: Path | None = None
 
 
 def _configure_cv_runtime_stability() -> None:
@@ -294,6 +300,8 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     stroke_results = vectorize_strokes(stage2_layers.graphic_layer, scene_graph.nodes, 1.0)
     scene_graph_path = cfg.output_dir / 'scene_graph.json'
     scene_graph.write_json(scene_graph_path)
+    components_path = cfg.output_dir / 'components.json'
+    write_component_manifest(scene_graph, components_path)
     svg_export = export_svg(
         scene_graph,
         region_results,
@@ -308,6 +316,7 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
         enhanced_path=enhancement.image_path,
         scene_graph_path=scene_graph_path,
         final_svg_path=svg_export.svg_path,
+        components_path=components_path,
     )
 
 
@@ -339,7 +348,8 @@ def _proposals_for_stage(
     stage_prefix: str | None,
 ) -> list[ComponentProposal]:
     blank_text = np.full_like(image, 255)
-    proposals = propose_components(image, output_dir, cfg, text_image_input=blank_text)
+    backend = get_segmentation_backend(cfg.segmentation_backend)
+    proposals = backend.propose(image, output_dir, cfg=cfg, text_image_input=blank_text)
     if stage_prefix is None:
         return proposals
 

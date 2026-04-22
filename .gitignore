@@ -22,6 +22,7 @@ env/
 
 # Testing
 .pytest_cache/
+.tmp/
 .coverage
 htmlcov/
 .tox/

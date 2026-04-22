@@ -1,4 +1,4 @@
-﻿"""Stable top-level API for external tool integrations."""
+"""Stable top-level API for external tool integrations."""
 
 from __future__ import annotations
 
@@ -21,10 +21,16 @@ class Plot2SvgEngine:
         *,
         execution_profile: str = 'balanced',
         enhancement_mode: str = 'auto',
+        segmentation_backend: str = 'opencv',
+        template_optimization: str = 'deterministic',
+        emit_layout_template: bool = True,
         temp_root: str | Path | None = None,
     ) -> None:
         self.execution_profile = execution_profile
         self.enhancement_mode = enhancement_mode
+        self.segmentation_backend = segmentation_backend
+        self.template_optimization = template_optimization
+        self.emit_layout_template = emit_layout_template
         self.temp_root = Path(temp_root) if temp_root is not None else Path('outputs/_api_tmp')
 
     def process_image(
@@ -51,6 +57,9 @@ class Plot2SvgEngine:
                 output_dir=resolved_output_dir,
                 execution_profile=self.execution_profile,
                 enhancement_mode=self.enhancement_mode,
+                segmentation_backend=self.segmentation_backend,
+                template_optimization=self.template_optimization,
+                emit_layout_template=self.emit_layout_template,
             )
             artifacts = run_pipeline(cfg)
             scene_graph = self._safe_read_json(artifacts.scene_graph_path)
@@ -64,6 +73,8 @@ class Plot2SvgEngine:
                     'output_dir': str(resolved_output_dir),
                     'scene_graph_path': str(artifacts.scene_graph_path),
                     'final_svg_path': str(artifacts.final_svg_path),
+                    'components_path': str(artifacts.components_path) if artifacts.components_path is not None else None,
+                    'template_svg_path': str(artifacts.template_svg_path) if artifacts.template_svg_path is not None else None,
                 },
             }
         except Exception as exc:  # noqa: BLE001
@@ -81,6 +92,8 @@ class Plot2SvgEngine:
                     'output_dir': str(resolved_output_dir) if resolved_output_dir is not None else None,
                     'scene_graph_path': str(resolved_output_dir / 'scene_graph.json') if resolved_output_dir is not None else None,
                     'final_svg_path': str(resolved_output_dir / 'final.svg') if resolved_output_dir is not None else None,
+                    'components_path': str(resolved_output_dir / 'components.json') if resolved_output_dir is not None else None,
+                    'template_svg_path': str(resolved_output_dir / 'template.svg') if resolved_output_dir is not None else None,
                 },
             }
         finally:
