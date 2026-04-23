@@ -301,7 +301,12 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
     scene_graph_path = cfg.output_dir / 'scene_graph.json'
     scene_graph.write_json(scene_graph_path)
     components_path = cfg.output_dir / 'components.json'
-    write_component_manifest(scene_graph, components_path)
+    component_manifest = build_component_manifest(scene_graph, cfg.segmentation_backend)
+    write_component_manifest(scene_graph, components_path, cfg.segmentation_backend)
+    template_manifest = apply_template_optimization(component_manifest, cfg.template_optimization)
+    template_svg_path = cfg.output_dir / 'template.svg' if cfg.emit_layout_template else None
+    if template_svg_path is not None:
+        write_layout_template_svg(template_manifest, template_svg_path)
     svg_export = export_svg(
         scene_graph,
         region_results,
@@ -317,6 +322,7 @@ def run_pipeline(cfg: PipelineConfig) -> PipelineArtifacts:
         scene_graph_path=scene_graph_path,
         final_svg_path=svg_export.svg_path,
         components_path=components_path,
+        template_svg_path=template_svg_path,
     )
 
 
